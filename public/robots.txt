@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jarvis-strong-app.vercel.app/sitemap.xml

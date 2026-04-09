@@ -1,0 +1,602 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  defaultAchievements,
+  defaultExerciseRanks,
+  defaultGoals,
+  defaultMealPlan,
+  defaultNutritionSeed,
+  defaultRoutines,
+  sampleWorkoutSeeds,
+  starterProfile,
+} from "../data/defaultRoutines";
+import { getSupabase, isSupabaseReady } from "../lib/supabase";
+
+const WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const WEEKLY_ROUTINE = ["Push", "Pull", "Legs", "Rest", "Push", "Pull", "Active Recovery"];
+
+function toDayString(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function computeNextLevel(xp) {
+  return Math.max(1, Math.floor(xp / 100) + 23);
+}
+
+export function useWorkouts(user) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [routines, setRoutines] = useState([]);
+  const [workouts, setWorkouts] = useState([]);
+  const [workoutSets, setWorkoutSets] = useState([]);
+  const [bodyweightLog, setBodyweightLog] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [scheduleCompletions, setScheduleCompletions] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const [achievements, setAchievements] = useState([]);
+  const [mealPlans, setMealPlans] = useState([]);
+  const [galleryEntries, setGalleryEntries] = useState([]);
+  const [syncStamp, setSyncStamp] = useState(null);
+  const seedAttempted = useRef(false);
+
+  const fetchFriends = useCallback(async (client, userId) => {
+    const { data: friendRows, error: friendError } = await client
+      .from("friends")
+      .select("id, friend_id, status, created_at")
+      .eq("user_id", userId)
+      .eq("status", "accepted");
+
+    if (friendError || !friendRows?.length) {
+      return [];
+    }
+
+    const friendIds = friendRows.map((row) => row.friend_id);
+    const [{ data: profiles }, { data: recentWorkouts }] = await Promise.all([
+      client.from("profiles").select("id, username, bio, avatar_color, level, xp, streak").in("id", friendIds),
+      client
+        .from("workouts")
+        .select("id, user_id, routine_name, duration_seconds, volume_kg, sets_completed, records_broken, notes, completed_at")
+        .in("user_id", friendIds)
+        .order("completed_at", { ascending: false }),
+    ]);
+
+    return friendRows.map((row) => ({
+      ...row,
+      profile: profiles?.find((profileItem) => profileItem.id === row.friend_id) ?? null,
+      workout: recentWorkouts?.find((workout) => workout.user_id === row.friend_id) ?? null,
+    }));
+  }, []);
+
+  const seedDefaults = useCallback(
+    async (client, userId) => {
+      await client.from("profiles").upsert({ id: userId, ...starterProfile }, { onConflict: "id" });
+
+      const { data: existingRoutines } = await client.from("routines").select("id").eq("user_id", userId).limit(1);
+      if (!existingRoutines?.length) {
+        const routineRows = defaultRoutines.map((routine) => ({ user_id: userId, name: routine.name }));
+        const { data: insertedRoutines } = await client.from("routines").insert(routineRows).select("id, name");
+
+        if (insertedRoutines?.length) {
+          const exerciseRows = insertedRoutines.flatMap((routine) => {
+            const source = defaultRoutines.find((entry) => entry.name === routine.name);
+            return source.exercises.map((exercise) => ({
+              routine_id: routine.id,
+              ...exercise,
+            }));
+          });
+          await client.from("routine_exercises").insert(exerciseRows);
+        }
+      }
+
+      const { data: workoutExists } = await client.from("workouts").select("id").eq("user_id", userId).limit(1);
+      if (!workoutExists?.length) {
+        const { data: insertedWorkouts } = await client.from("workouts").insert(
+          sampleWorkoutSeeds.map((workout) => ({ user_id: userId, ...workout })),
+        ).select("id, routine_name, completed_at");
+
+        if (insertedWorkouts?.length) {
+          const insertedSets = insertedWorkouts.flatMap((workout) => {
+            const routine = defaultRoutines.find((entry) => entry.name === workout.routine_name) ?? defaultRoutines[0];
+            return routine.exercises.flatMap((exercise) =>
+              Array.from({ length: exercise.sets }, (_, index) => ({
+                workout_id: workout.id,
+                user_id: userId,
+                exercise_name: exercise.exercise_name,
+                muscle_group: exercise.muscle_group,
+                set_number: index + 1,
+                weight_kg: exercise.kg,
+                reps: exercise.reps,
+                completed_at: workout.completed_at,
+              })),
+            );
+          });
+          await client.from("workout_sets").insert(insertedSets);
+        }
+      }
+
+      const { data: bodyweightExists } = await client.from("bodyweight_log").select("id").eq("user_id", userId).limit(1);
+      if (!bodyweightExists?.length) {
+        await client.from("bodyweight_log").insert([
+          { user_id: userId, weight_kg: 49, logged_at: toDayString(new Date(Date.now() - 1000 * 60 * 60 * 24 * 14)) },
+          { user_id: userId, weight_kg: 49.4, logged_at: toDayString(new Date(Date.now() - 1000 * 60 * 60 * 24 * 7)) },
+          { user_id: userId, weight_kg: 49.8, logged_at: toDayString() },
+        ]);
+      }
+
+      const { data: goalsExist } = await client.from("goals").select("id").eq("user_id", userId).limit(1);
+      if (!goalsExist?.length) {
+        await client.from("goals").insert(defaultGoals.map((goal) => ({ user_id: userId, ...goal })));
+      }
+
+      const { data: achievementsExist } = await client.from("achievements").select("id").eq("user_id", userId).limit(1);
+      if (!achievementsExist?.length) {
+        await client.from("achievements").insert(defaultAchievements.map((achievement) => ({ user_id: userId, ...achievement })));
+      }
+
+      const { data: mealPlansExist } = await client.from("meal_plan_entries").select("id").eq("user_id", userId).limit(1);
+      if (!mealPlansExist?.length) {
+        await client.from("meal_plan_entries").insert(defaultMealPlan.map((entry) => ({ user_id: userId, ...entry })));
+      }
+
+      const { data: galleryExists } = await client.from("exercise_rank_entries").select("id").eq("user_id", userId).limit(1);
+      if (!galleryExists?.length) {
+        await client.from("exercise_rank_entries").insert(defaultExerciseRanks.map((entry) => ({ user_id: userId, ...entry })));
+      }
+
+      const { data: nutritionExists } = await client.from("nutrition_log").select("id").eq("user_id", userId).limit(1);
+      if (!nutritionExists?.length) {
+        await client.from("nutrition_log").insert(defaultNutritionSeed.map((entry) => ({ user_id: userId, log_date: toDayString(), ...entry })));
+      }
+
+      const { data: friendExists } = await client.from("friends").select("id").eq("user_id", userId).limit(1);
+      if (!friendExists?.length) {
+        const { data: publicProfiles } = await client
+          .from("profiles")
+          .select("id")
+          .neq("id", userId)
+          .eq("is_public", true)
+          .limit(3);
+
+        if (publicProfiles?.length) {
+          await client.from("friends").insert(publicProfiles.map((profileItem) => ({ user_id: userId, friend_id: profileItem.id, status: "accepted" })));
+        }
+      }
+    },
+    [],
+  );
+
+  const refresh = useCallback(async () => {
+    if (!user?.id || !isSupabaseReady) {
+      setLoading(false);
+      return;
+    }
+
+    const client = getSupabase();
+    setLoading(true);
+    setError("");
+
+    const responses = await Promise.all([
+      client.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      client.from("routines").select("id, user_id, name, created_at, routine_exercises(*)").eq("user_id", user.id).order("created_at", { ascending: true }),
+      client.from("workouts").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
+      client.from("workout_sets").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
+      client.from("bodyweight_log").select("*").eq("user_id", user.id).order("logged_at", { ascending: true }),
+      client.from("goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      client.from("schedule_completions").select("*").eq("user_id", user.id).order("completed_date", { ascending: false }),
+      client.from("achievements").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
+      client.from("meal_plan_entries").select("*").eq("user_id", user.id).order("day_key", { ascending: true }),
+      client.from("exercise_rank_entries").select("*").eq("user_id", user.id).order("lp", { ascending: false }),
+    ]);
+
+    const [profileRes, routinesRes, workoutsRes, workoutSetsRes, weightRes, goalsRes, scheduleRes, achievementsRes, mealPlansRes, galleryRes] = responses;
+    const queryError = responses.find((response) => response.error)?.error;
+
+    if (queryError) {
+      setError(queryError.message);
+    }
+
+    if (!seedAttempted.current) {
+      const shouldSeed =
+        !routinesRes.data?.length &&
+        !workoutsRes.data?.length &&
+        !weightRes.data?.length &&
+        !goalsRes.data?.length &&
+        !achievementsRes.data?.length &&
+        !mealPlansRes.data?.length &&
+        !galleryRes.data?.length;
+
+      if (shouldSeed) {
+        seedAttempted.current = true;
+        await seedDefaults(client, user.id);
+        await refresh();
+        return;
+      }
+    }
+
+    setProfile(profileRes.data);
+    setRoutines((routinesRes.data ?? []).map((routine) => ({ ...routine, routine_exercises: (routine.routine_exercises ?? []).sort((a, b) => a.sort_order - b.sort_order) })));
+    setWorkouts(workoutsRes.data ?? []);
+    setWorkoutSets(workoutSetsRes.data ?? []);
+    setBodyweightLog(weightRes.data ?? []);
+    setGoals(goalsRes.data ?? []);
+    setScheduleCompletions(scheduleRes.data ?? []);
+    setAchievements(achievementsRes.data ?? []);
+    setMealPlans(mealPlansRes.data ?? []);
+    setGalleryEntries(galleryRes.data ?? []);
+    setFriends(await fetchFriends(client, user.id));
+    setLoading(false);
+    setSyncStamp(new Date().toISOString());
+  }, [fetchFriends, seedDefaults, user?.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const saveProfile = useCallback(
+    async (updates) => {
+      const client = getSupabase();
+      const payload = { id: user.id, ...updates };
+      const { data, error: updateError } = await client.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
+      if (updateError) throw updateError;
+      setProfile(data);
+      return data;
+    },
+    [user?.id],
+  );
+
+  const saveRoutine = useCallback(
+    async (routine) => {
+      const client = getSupabase();
+      let routineId = routine.id;
+
+      if (routineId) {
+        const { error: routineError } = await client.from("routines").update({ name: routine.name }).eq("id", routineId).eq("user_id", user.id);
+        if (routineError) throw routineError;
+        await client.from("routine_exercises").delete().eq("routine_id", routineId);
+      } else {
+        const { data, error: insertError } = await client.from("routines").insert({ user_id: user.id, name: routine.name }).select("id").single();
+        if (insertError) throw insertError;
+        routineId = data.id;
+      }
+
+      if (routine.exercises?.length) {
+        const { error: exercisesError } = await client.from("routine_exercises").insert(
+          routine.exercises.map((exercise, index) => ({
+            routine_id: routineId,
+            exercise_name: exercise.exercise_name,
+            sets: Number(exercise.sets ?? 3),
+            kg: Number(exercise.kg ?? 0),
+            reps: Number(exercise.reps ?? 8),
+            sort_order: Number(exercise.sort_order ?? index + 1),
+            muscle_group: exercise.muscle_group ?? "General",
+          })),
+        );
+        if (exercisesError) throw exercisesError;
+      }
+
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const duplicateRoutine = useCallback(
+    async (routine) => {
+      await saveRoutine({
+        name: `${routine.name} Copy`,
+        exercises: routine.routine_exercises.map((exercise, index) => ({ ...exercise, sort_order: index + 1 })),
+      });
+    },
+    [saveRoutine],
+  );
+
+  const deleteRoutine = useCallback(
+    async (routineId) => {
+      const client = getSupabase();
+      await client.from("routines").delete().eq("id", routineId).eq("user_id", user.id);
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const saveGoal = useCallback(
+    async (goal) => {
+      const client = getSupabase();
+      if (goal.id) {
+        await client.from("goals").update(goal).eq("id", goal.id).eq("user_id", user.id);
+      } else {
+        await client.from("goals").insert({ user_id: user.id, ...goal });
+      }
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const deleteGoal = useCallback(
+    async (goalId) => {
+      const client = getSupabase();
+      await client.from("goals").delete().eq("id", goalId).eq("user_id", user.id);
+      setGoals((current) => current.filter((goal) => goal.id !== goalId));
+    },
+    [user?.id],
+  );
+
+  const logBodyweight = useCallback(
+    async (weightKg) => {
+      const client = getSupabase();
+      await client.from("bodyweight_log").insert({ user_id: user.id, weight_kg: Number(weightKg), logged_at: toDayString() });
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const toggleScheduleBlock = useCallback(
+    async (blockId, completedDate = toDayString()) => {
+      const client = getSupabase();
+      const existing = scheduleCompletions.find((entry) => entry.block_id === blockId && entry.completed_date === completedDate);
+      if (existing) {
+        await client.from("schedule_completions").delete().eq("id", existing.id);
+      } else {
+        await client.from("schedule_completions").insert({ user_id: user.id, block_id: blockId, completed_date: completedDate });
+      }
+      await refresh();
+    },
+    [refresh, scheduleCompletions, user?.id],
+  );
+
+  const saveMealPlanEntry = useCallback(
+    async (entry) => {
+      const client = getSupabase();
+      const existing = mealPlans.find((item) => item.day_key === entry.day_key && item.meal_type === entry.meal_type);
+      if (existing) {
+        await client.from("meal_plan_entries").update({ meal_text: entry.meal_text }).eq("id", existing.id).eq("user_id", user.id);
+      } else {
+        await client.from("meal_plan_entries").insert({ user_id: user.id, ...entry });
+      }
+      await refresh();
+    },
+    [mealPlans, refresh, user?.id],
+  );
+
+  const resetMealPlan = useCallback(async () => {
+    const client = getSupabase();
+    await client.from("meal_plan_entries").delete().eq("user_id", user.id);
+    await client.from("meal_plan_entries").insert(defaultMealPlan.map((entry) => ({ user_id: user.id, ...entry })));
+    await refresh();
+  }, [refresh, user?.id]);
+
+  const saveExerciseRank = useCallback(
+    async (entry) => {
+      const client = getSupabase();
+      if (entry.id) {
+        await client.from("exercise_rank_entries").update(entry).eq("id", entry.id).eq("user_id", user.id);
+      } else {
+        await client.from("exercise_rank_entries").insert({ user_id: user.id, ...entry });
+      }
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const syncAchievements = useCallback(
+    async ({ nextStreak, allWorkoutSets }) => {
+      const client = getSupabase();
+      const nextAchievements = achievements.map((achievement) => {
+        if (achievement.slug === "first-workout") {
+          return { ...achievement, unlocked: true, progress: 100 };
+        }
+        if (achievement.slug === "10-day-streak") {
+          return { ...achievement, unlocked: nextStreak >= 10, progress: Math.min(100, nextStreak * 10) };
+        }
+        if (achievement.slug === "30-day-discipline") {
+          return { ...achievement, unlocked: nextStreak >= 30, progress: Math.min(100, Math.round((nextStreak / 30) * 100)) };
+        }
+        if (achievement.slug === "100kg-bench") {
+          const benchHit = allWorkoutSets.some((set) => set.exercise_name === "Bench Press" && Number(set.weight_kg) >= 100);
+          return { ...achievement, unlocked: benchHit, progress: benchHit ? 100 : 80 };
+        }
+        return achievement;
+      });
+
+      await Promise.all(
+        nextAchievements.map((achievement) =>
+          client
+            .from("achievements")
+            .update({ unlocked: achievement.unlocked, progress: achievement.progress })
+            .eq("id", achievement.id)
+            .eq("user_id", user.id),
+        ),
+      );
+    },
+    [achievements, user?.id],
+  );
+
+  const finishWorkout = useCallback(
+    async (session) => {
+      const client = getSupabase();
+      const allSets = session.exercises.flatMap((exercise) =>
+        exercise.sets
+          .filter((set) => set.completed && Number(set.kg) > 0 && Number(set.reps) > 0)
+          .map((set, index) => ({
+            exercise_name: exercise.exercise_name,
+            muscle_group: exercise.muscle_group,
+            set_number: index + 1,
+            weight_kg: Number(set.kg),
+            reps: Number(set.reps),
+          })),
+      );
+      const volumeKg = allSets.reduce((sum, set) => sum + set.weight_kg * set.reps, 0);
+      const setsCompleted = allSets.length;
+      const recordsBroken = allSets.filter((set) => set.weight_kg >= 100 || set.reps >= 12).length;
+
+      const { data: insertedWorkout, error: workoutError } = await client
+        .from("workouts")
+        .insert({
+          user_id: user.id,
+          routine_name: session.routine_name,
+          duration_seconds: session.duration_seconds,
+          volume_kg: volumeKg,
+          sets_completed: setsCompleted,
+          records_broken: recordsBroken,
+          notes: session.notes || "Session complete.",
+          completed_at: new Date().toISOString(),
+        })
+        .select("*")
+        .single();
+      if (workoutError) throw workoutError;
+
+      const setRows = allSets.map((set) => ({ ...set, workout_id: insertedWorkout.id, user_id: user.id, completed_at: insertedWorkout.completed_at }));
+      if (setRows.length) {
+        await client.from("workout_sets").insert(setRows);
+      }
+
+      const nextXp = Number(profile?.xp ?? starterProfile.xp) + setsCompleted * 3;
+      const nextStreak = Math.max(Number(profile?.streak ?? starterProfile.streak), 1) + 1;
+      const nextLevel = computeNextLevel(nextXp);
+      const { data: updatedProfile } = await client
+        .from("profiles")
+        .update({ xp: nextXp, streak: nextStreak, level: nextLevel })
+        .eq("id", user.id)
+        .select("*")
+        .single();
+
+      await syncAchievements({ nextStreak, allWorkoutSets: [...workoutSets, ...setRows] });
+      setProfile(updatedProfile);
+      await refresh();
+
+      return {
+        ...insertedWorkout,
+        xpGained: setsCompleted * 3,
+        level: nextLevel,
+        muscles: [...new Set(session.exercises.map((exercise) => exercise.muscle_group))],
+      };
+    },
+    [profile, refresh, syncAchievements, user?.id, workoutSets],
+  );
+
+  const addFriend = useCallback(
+    async (friendId) => {
+      const client = getSupabase();
+      await client.from("friends").insert({ user_id: user.id, friend_id: friendId, status: "accepted" });
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const removeFriend = useCallback(
+    async (friendId) => {
+      const client = getSupabase();
+      await client.from("friends").delete().eq("user_id", user.id).eq("friend_id", friendId);
+      await refresh();
+    },
+    [refresh, user?.id],
+  );
+
+  const exportUserData = useCallback(() => ({ profile, routines, workouts, workoutSets, bodyweightLog, goals, scheduleCompletions, achievements, mealPlans, galleryEntries }), [achievements, bodyweightLog, galleryEntries, goals, mealPlans, profile, routines, scheduleCompletions, workoutSets, workouts]);
+
+  const resetAllData = useCallback(async () => {
+    const client = getSupabase();
+    await Promise.all([
+      client.from("nutrition_log").delete().eq("user_id", user.id),
+      client.from("workout_sets").delete().eq("user_id", user.id),
+      client.from("workouts").delete().eq("user_id", user.id),
+      client.from("goals").delete().eq("user_id", user.id),
+      client.from("bodyweight_log").delete().eq("user_id", user.id),
+      client.from("schedule_completions").delete().eq("user_id", user.id),
+      client.from("friends").delete().eq("user_id", user.id),
+      client.from("achievements").delete().eq("user_id", user.id),
+      client.from("meal_plan_entries").delete().eq("user_id", user.id),
+      client.from("exercise_rank_entries").delete().eq("user_id", user.id),
+    ]);
+    const routineIds = routines.map((routine) => routine.id);
+    if (routineIds.length) {
+      await client.from("routines").delete().in("id", routineIds);
+    }
+    seedAttempted.current = false;
+    await seedDefaults(client, user.id);
+    await refresh();
+  }, [refresh, routines, seedDefaults, user?.id]);
+
+  const weeklyPlan = useMemo(
+    () => WEEK_DAYS.map((day, index) => ({ day, routine: WEEKLY_ROUTINE[index], sets: index === 3 ? 0 : 15 - (index % 3), duration: index === 3 ? "Recovery" : `${55 + index * 5} min` })),
+    [],
+  );
+
+  const getPreviousPerformance = useCallback(
+    (exerciseName) => workoutSets.find((set) => set.exercise_name === exerciseName) ?? null,
+    [workoutSets],
+  );
+
+  return useMemo(
+    () => ({
+      loading,
+      error,
+      profile,
+      routines,
+      workouts,
+      workoutSets,
+      bodyweightLog,
+      goals,
+      scheduleCompletions,
+      achievements,
+      mealPlans,
+      galleryEntries,
+      friends,
+      weeklyPlan,
+      syncStamp,
+      refresh,
+      saveProfile,
+      saveRoutine,
+      duplicateRoutine,
+      deleteRoutine,
+      saveGoal,
+      deleteGoal,
+      logBodyweight,
+      toggleScheduleBlock,
+      saveMealPlanEntry,
+      resetMealPlan,
+      saveExerciseRank,
+      finishWorkout,
+      addFriend,
+      removeFriend,
+      getPreviousPerformance,
+      exportUserData,
+      resetAllData,
+    }),
+    [
+      achievements,
+      addFriend,
+      bodyweightLog,
+      deleteGoal,
+      deleteRoutine,
+      error,
+      exportUserData,
+      resetAllData,
+      finishWorkout,
+      friends,
+      galleryEntries,
+      getPreviousPerformance,
+      goals,
+      loading,
+      logBodyweight,
+      mealPlans,
+      profile,
+      refresh,
+      removeFriend,
+      routines,
+      saveExerciseRank,
+      saveGoal,
+      saveMealPlanEntry,
+      saveProfile,
+      saveRoutine,
+      scheduleCompletions,
+      syncStamp,
+      toggleScheduleBlock,
+      weeklyPlan,
+      workoutSets,
+      workouts,
+      duplicateRoutine,
+      resetMealPlan,
+    ],
+  );
+}
+

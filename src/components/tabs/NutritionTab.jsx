@@ -1,0 +1,49 @@
+import { useMemo, useState } from "react";
+import CalorieRing from "../charts/CalorieRing";
+import VolumeBarChart from "../charts/VolumeBarChart";
+import WeightLineChart from "../charts/WeightLineChart";
+import { useAppState } from "../../store/globalState";
+
+const recipes = [
+  { name: "Protein Oats", kcal: 380, prep: "8 min", mealType: "breakfast" },
+  { name: "Rice Bowl", kcal: 520, prep: "15 min", mealType: "lunch" },
+  { name: "Grilled Chicken", kcal: 330, prep: "18 min", mealType: "dinner" },
+  { name: "Dal Rice", kcal: 410, prep: "20 min", mealType: "dinner" },
+  { name: "Recovery Smoothie", kcal: 290, prep: "5 min", mealType: "snacks" },
+  { name: "Paneer Wrap", kcal: 430, prep: "12 min", mealType: "lunch" },
+];
+
+function SegmentTabs({ items, active, onChange }) {
+  return <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">{items.map((item) => <button key={item.id} type="button" onClick={() => onChange(item.id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${active === item.id ? "bg-red text-white" : "text-text2"}`}>{item.label}</button>)}</div>;
+}
+
+export default function NutritionTab({ nutritionEntries, bodyweightLog, mealPlans, selectedDate, setSelectedDate, onOpenFoodModal, onDeleteFood, onSaveMealPlanEntry, onResetMealPlan, onQuickAddRecipe }) {
+  const { subTabs, setSubTab } = useAppState();
+  const activeTab = subTabs.nutrition;
+  const [mealPlanDrafts, setMealPlanDrafts] = useState({});
+  const todaysEntries = nutritionEntries.filter((entry) => entry.log_date === selectedDate);
+  const totals = todaysEntries.reduce((sum, entry) => ({ calories: sum.calories + Number(entry.calories ?? 0), protein: sum.protein + Number(entry.protein_g ?? 0), carbs: sum.carbs + Number(entry.carbs_g ?? 0), fat: sum.fat + Number(entry.fat_g ?? 0), fiber: sum.fiber + Number(entry.fiber_g ?? 0) }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+  const groupedMeals = ["breakfast", "lunch", "dinner", "snacks"].map((meal) => ({ meal, entries: todaysEntries.filter((entry) => entry.meal_type === meal) }));
+  const weeklyEntries = nutritionEntries.slice(0, 30);
+  const weeklyLabels = [...new Set(weeklyEntries.map((entry) => entry.log_date))].slice(-7);
+  const caloriesByDay = weeklyLabels.map((date) => weeklyEntries.filter((entry) => entry.log_date === date).reduce((sum, entry) => sum + Number(entry.calories ?? 0), 0));
+  const proteinByDay = weeklyLabels.map((date) => weeklyEntries.filter((entry) => entry.log_date === date).reduce((sum, entry) => sum + Number(entry.protein_g ?? 0), 0));
+  const carbsByDay = weeklyLabels.map((date) => weeklyEntries.filter((entry) => entry.log_date === date).reduce((sum, entry) => sum + Number(entry.carbs_g ?? 0), 0));
+  const fatByDay = weeklyLabels.map((date) => weeklyEntries.filter((entry) => entry.log_date === date).reduce((sum, entry) => sum + Number(entry.fat_g ?? 0), 0));
+  const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+  return (
+    <div className="space-y-5">
+      <SegmentTabs items={[{ id: "diary", label: "Diary" }, { id: "dashboard", label: "Dashboard" }, { id: "mealPlan", label: "Meal Plan" }, { id: "recipes", label: "Recipes" }]} active={activeTab} onChange={(next) => setSubTab("nutrition", next)} />
+
+      {activeTab === "diary" && <div className="space-y-5"><section className="rounded-[24px] border border-white/10 bg-card p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.24em] text-text3">Diary date</p><h3 className="mt-2 text-xl font-bold text-text">{new Date(selectedDate).toLocaleDateString()}</h3></div><input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="rounded-2xl border border-white/10 bg-[#090912] px-4 py-3 text-text outline-none" /></div><div className="mt-5 flex flex-col items-center gap-4 md:flex-row md:justify-between"><div className="relative flex h-48 w-48 items-center justify-center"><CalorieRing protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} /><div className="absolute text-center"><p className="font-mono text-3xl font-bold text-text">{totals.calories}</p><p className="text-xs uppercase tracking-[0.24em] text-text3">kcal</p></div></div><div className="grid grid-cols-2 gap-3">{[["Protein", `${Math.round(totals.protein)}g`],["Carbs", `${Math.round(totals.carbs)}g`],["Fat", `${Math.round(totals.fat)}g`],["Fiber", `${Math.round(totals.fiber)}g`]].map(([label, value]) => (<div key={label} className="rounded-2xl border border-white/10 bg-[#090912] p-4"><p className="text-xs uppercase tracking-[0.24em] text-text3">{label}</p><p className="mt-2 text-xl font-bold text-text">{value}</p></div>))}</div></div></section><section className="space-y-4">{groupedMeals.map((group) => (<article key={group.meal} className="rounded-[24px] border border-white/10 bg-card p-5"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-[0.24em] text-text3">{group.meal}</p><h3 className="mt-1 text-lg font-bold text-text">{group.entries.length ? `${group.entries.length} foods logged` : "No foods yet"}</h3></div><button type="button" onClick={() => onOpenFoodModal(group.meal)} className="rounded-full bg-red px-4 py-2 text-sm font-bold text-white">+ Add</button></div><div className="mt-4 space-y-3">{group.entries.map((entry) => (<div key={entry.id} className="rounded-2xl border border-white/8 bg-[#090912] p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-semibold text-text">{entry.food_name}</p><p className="text-sm text-text3">{entry.quantity}</p></div><div className="text-right"><p className="font-semibold text-orange">{entry.calories} kcal</p><p className="text-xs text-text3">P {entry.protein_g} • C {entry.carbs_g} • F {entry.fat_g}</p></div></div><div className="mt-3 flex gap-3"><button type="button" onClick={() => onOpenFoodModal(group.meal, entry)} className="rounded-full border border-white/10 px-3 py-2 text-sm text-text2">Edit</button><button type="button" onClick={() => onDeleteFood(entry.id)} className="rounded-full border border-red/30 px-3 py-2 text-sm text-red">Delete</button></div></div>))}</div></article>))}</section></div>}
+
+      {activeTab === "dashboard" && <div className="space-y-5"><section className="rounded-[24px] border border-white/10 bg-card p-5"><p className="text-xs uppercase tracking-[0.24em] text-text3">Weekly calorie trend</p><div className="chart-shell mt-4"><VolumeBarChart labels={weeklyLabels.map((label) => label.slice(5))} values={caloriesByDay} color="#FF6B35" /></div></section><section className="rounded-[24px] border border-white/10 bg-card p-5"><p className="text-xs uppercase tracking-[0.24em] text-text3">Macro trend</p><div className="grid gap-5 md:grid-cols-3"><div className="chart-shell"><WeightLineChart labels={weeklyLabels.map((label) => label.slice(5))} values={proteinByDay} fill={false} /></div><div className="chart-shell"><WeightLineChart labels={weeklyLabels.map((label) => label.slice(5))} values={carbsByDay} fill={false} /></div><div className="chart-shell"><WeightLineChart labels={weeklyLabels.map((label) => label.slice(5))} values={fatByDay} fill={false} /></div></div></section><section className="rounded-[24px] border border-white/10 bg-card p-5"><p className="text-xs uppercase tracking-[0.24em] text-text3">Weight progress</p><div className="chart-shell mt-4"><WeightLineChart labels={bodyweightLog.map((entry) => entry.logged_at?.slice(5))} values={bodyweightLog.map((entry) => Number(entry.weight_kg))} /></div></section></div>}
+
+      {activeTab === "mealPlan" && <div className="space-y-5"><div className="rounded-[24px] border border-white/10 bg-card p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.24em] text-text3">7 day weekly schedule</p><h3 className="mt-2 text-xl font-bold text-text">Editable meal plan</h3></div><button type="button" onClick={onResetMealPlan} className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2">Regenerate Plan</button></div></div><div className="grid gap-4">{days.map((day) => (<article key={day} className="rounded-[24px] border border-white/10 bg-card p-5"><p className="text-xs uppercase tracking-[0.28em] text-text3">{day}</p><div className="mt-4 grid gap-3 md:grid-cols-3">{["breakfast", "lunch", "dinner"].map((meal) => { const entry = mealPlans.find((item) => item.day_key === day && item.meal_type === meal); const value = mealPlanDrafts[`${day}-${meal}`] ?? entry?.meal_text ?? ""; return (<label key={meal} className="rounded-2xl border border-white/10 bg-[#090912] p-4"><span className="mb-2 block text-xs uppercase tracking-[0.24em] text-text3">{meal}</span><input value={value} onChange={(event) => setMealPlanDrafts((current) => ({ ...current, [`${day}-${meal}`]: event.target.value }))} onBlur={() => onSaveMealPlanEntry({ day_key: day, meal_type: meal, meal_text: value })} className="w-full bg-transparent text-text outline-none" /></label>); })}</div></article>))}</div></div>}
+
+      {activeTab === "recipes" && <div className="grid grid-cols-2 gap-3">{recipes.map((recipe) => (<article key={recipe.name} className="rounded-[24px] border border-white/10 bg-card p-5"><div className="rounded-[18px] bg-gradient-to-br from-blue/15 to-orange/15 p-5 text-4xl">???</div><h3 className="mt-4 text-lg font-semibold text-text">{recipe.name}</h3><p className="mt-1 text-sm text-text2">{recipe.kcal} kcal • {recipe.prep}</p><button type="button" onClick={() => onQuickAddRecipe(recipe)} className="mt-4 rounded-full bg-red px-4 py-2 text-sm font-bold text-white">Add to Diary</button></article>))}</div>}
+    </div>
+  );
+}
+
