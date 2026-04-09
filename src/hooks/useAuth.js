@@ -33,46 +33,6 @@ export function useAuth() {
       }
     };
 
-    const restoreSession = async () => {
-      try {
-        const sessionResult = await Promise.race([
-          client.auth.getSession(),
-          new Promise((_, reject) => {
-            window.setTimeout(() => reject(new Error("Session restore timed out.")), 8000);
-          }),
-        ]);
-
-        if (cancelled) return;
-
-        const { data, error } = sessionResult;
-
-        if (error) {
-          setAuthError(error.message);
-        }
-
-        setSession(data?.session ?? null);
-        finishLoading();
-
-        if (data?.session?.user) {
-          try {
-            await ensureProfile(data.session.user);
-          } catch (profileError) {
-            if (!cancelled) {
-              setAuthError(profileError.message || "Could not sync your profile yet.");
-            }
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setAuthError(error.message || "Could not restore session.");
-          setSession(null);
-        }
-        finishLoading();
-      }
-    };
-
-    restoreSession();
-
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange(async (event, nextSession) => {
@@ -102,8 +62,15 @@ export function useAuth() {
       }
     });
 
+    // Supabase emits INITIAL_SESSION after storage is loaded, but we keep a soft
+    // fallback so the shell never hangs forever if the event is delayed.
+    const loadingTimeout = window.setTimeout(() => {
+      finishLoading();
+    }, 4000);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [ensureProfile]);

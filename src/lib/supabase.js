@@ -5,12 +5,24 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseReady = Boolean(supabaseUrl && supabaseAnonKey);
 
+const browserStorage =
+  typeof window !== "undefined"
+    ? {
+        getItem: (key) => window.localStorage.getItem(key),
+        setItem: (key, value) => window.localStorage.setItem(key, value),
+        removeItem: (key) => window.localStorage.removeItem(key),
+      }
+    : undefined;
+
 export const supabase = isSupabaseReady
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        flowType: "pkce",
+        storageKey: "jarvis-strong-auth",
+        storage: browserStorage,
       },
     })
   : null;
