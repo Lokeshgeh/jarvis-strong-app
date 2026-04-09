@@ -1,4 +1,5 @@
 ﻿import { useMemo, useState } from "react";
+import { defaultRoutines } from "../../data/defaultRoutines";
 import { scheduleBlocks, scheduleMeta } from "../../data/scheduleBlocks";
 import { useAppState } from "../../store/globalState";
 import { Icon } from "../icons";
@@ -63,6 +64,7 @@ export default function WorkoutTab({
   const { subTabs, setSubTab } = useAppState();
   const activeTab = subTabs.workout;
   const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [planBuilderOpen, setPlanBuilderOpen] = useState(false);
   const [energy, setEnergy] = useState(3);
   const [focus, setFocus] = useState("Chest");
   const [duration, setDuration] = useState(60);
@@ -89,6 +91,37 @@ export default function WorkoutTab({
 
   const todayRoutine = routines[0] ?? generatedRoutine;
   const todaySets = todayRoutine.routine_exercises?.reduce((sum, exercise) => sum + Number(exercise.sets), 0) ?? 15;
+
+  const weeklyExercisePlan = useMemo(() => {
+    const fallbackMap = Object.fromEntries(defaultRoutines.map((routine) => [routine.name.toLowerCase(), routine]));
+
+    return weeklyPlan.map((entry) => {
+      const routineName = entry.routine ?? "Rest";
+      const matchedRoutine =
+        routines.find((routine) => routine.name.toLowerCase() === routineName.toLowerCase()) ??
+        fallbackMap[routineName.toLowerCase()] ??
+        null;
+
+      const exercises = matchedRoutine
+        ? (matchedRoutine.routine_exercises ?? matchedRoutine.exercises ?? []).map((exercise, index) => ({
+            exercise_name: exercise.exercise_name,
+            muscle_group: exercise.muscle_group ?? "General",
+            sets: Number(exercise.sets ?? 3),
+            reps: Number(exercise.reps ?? 8),
+            kg: Number(exercise.kg ?? 0),
+            sort_order: Number(exercise.sort_order ?? index + 1),
+          }))
+        : [];
+
+      return {
+        ...entry,
+        id: `${entry.day}-${routineName}`,
+        routine: routineName,
+        exercises,
+        isRecoveryDay: routineName === "Rest" || routineName === "Active Recovery",
+      };
+    });
+  }, [routines, weeklyPlan]);
 
   return (
     <div className="space-y-5">
@@ -216,12 +249,96 @@ export default function WorkoutTab({
               <Icon name="spark" className="h-12 w-12" />
             </div>
             <h3 className="mt-4 text-2xl font-bold text-text">Plan Builder</h3>
-            <p className="mt-2 text-sm text-text2">Create entire workout weeks that map directly to your goals, recovery, and current output.</p>
-            <button type="button" onClick={() => setSubTab("workout", "schedule")} className="mt-5 rounded-full bg-blue px-5 py-3 text-sm font-bold text-[#03131d]">
-              CREATE MY PLAN
+            <p className="mt-2 text-sm text-text2">Create entire workout weeks that map directly to your goals, recovery, and current output. Tap below to reveal the full exercise plan for every day.</p>
+            <button
+              type="button"
+              onClick={() => setPlanBuilderOpen((current) => !current)}
+              className="mt-5 rounded-full bg-blue px-5 py-3 text-sm font-bold text-[#03131d]"
+            >
+              {planBuilderOpen ? "HIDE EXERCISE PLAN" : "CREATE MY PLAN"}
             </button>
           </div>
           <BodyDiagramCard />
+          {planBuilderOpen && (
+            <div className="rounded-[24px] border border-blue/20 bg-card p-5">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-blue">Exercise planner</p>
+                  <h3 className="mt-2 text-xl font-bold text-text">Your weekly exercise breakdown</h3>
+                  <p className="mt-2 text-sm text-text2">Each day now shows the actual exercises, set targets, and launch actions instead of a placeholder planner.</p>
+                </div>
+                <button type="button" onClick={() => setSubTab("workout", "schedule")} className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2">
+                  View Schedule
+                </button>
+              </div>
+              <div className="space-y-4">
+                {weeklyExercisePlan.map((entry) => (
+                  <article
+                    key={entry.id}
+                    className={`rounded-[24px] border p-5 ${entry.isRecoveryDay ? "border-white/10 bg-[#090912]" : "border-blue/20 bg-blue/10"}`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.28em] text-text3">{entry.day}</p>
+                        <h4 className="mt-2 text-xl font-bold text-text">{entry.routine}</h4>
+                        <p className="mt-1 text-sm text-text2">{entry.sets} sets - {entry.duration}</p>
+                      </div>
+                      {!entry.isRecoveryDay && (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onStartWorkout({
+                                name: entry.routine,
+                                routine_exercises: entry.exercises,
+                              })
+                            }
+                            className="rounded-full bg-blue px-4 py-2 text-sm font-bold text-[#03131d]"
+                          >
+                            Start Day
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onOpenRoutine({
+                                id: entry.id,
+                                name: entry.routine,
+                                routine_exercises: entry.exercises,
+                              })
+                            }
+                            className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2"
+                          >
+                            Open Plan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {entry.isRecoveryDay ? (
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-card px-4 py-3 text-sm text-text2">
+                        Recovery focus day. Keep mobility, walking, and light activation work here.
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid gap-3">
+                        {entry.exercises.map((exercise) => (
+                          <div key={`${entry.id}-${exercise.exercise_name}`} className="flex items-center justify-between rounded-2xl border border-white/8 bg-[#090912] px-4 py-3">
+                            <div>
+                              <p className="font-semibold text-text">{exercise.exercise_name}</p>
+                              <p className="text-xs text-text3">{exercise.muscle_group}</p>
+                            </div>
+                            <p className="text-sm font-mono text-blue">
+                              {exercise.sets} x {exercise.reps}
+                              {exercise.kg > 0 ? ` @ ${exercise.kg}kg` : ""}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="rounded-[24px] border border-white/10 bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
