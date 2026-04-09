@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,8 +7,30 @@
     <meta name="theme-color" content="#00BFFF" />
     <meta
       name="description"
-      content="Jarvis Strong is a gamified fitness tracker with workouts, nutrition, ranks, schedule tracking, and cloud sync."
+      content="Jarvis Strong is a gamified fitness tracker with workout logging, nutrition tracking, ranks, schedule completion, and cloud sync."
     />
+    <meta name="robots" content="index,follow" />
+    <meta name="keywords" content="Jarvis Strong, fitness tracker, workout tracker, nutrition tracker, gamified fitness app, strength training app" />
+    <link rel="canonical" href="https://jarvis-strong-app.vercel.app/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Jarvis Strong | Gamified Fitness Tracker" />
+    <meta
+      property="og:description"
+      content="Build discipline with workouts, nutrition, ranks, and schedule tracking in one dark-mode fitness app."
+    />
+    <meta property="og:url" content="https://jarvis-strong-app.vercel.app/" />
+    <meta property="og:site_name" content="Jarvis Strong" />
+    <meta property="og:image" content="https://jarvis-strong-app.vercel.app/icon-512.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Jarvis Strong | Gamified Fitness Tracker" />
+    <meta
+      name="twitter:description"
+      content="Build discipline with workouts, nutrition, ranks, and schedule tracking in one cloud-synced fitness app."
+    />
+    <meta name="twitter:image" content="https://jarvis-strong-app.vercel.app/icon-512.png" />
+
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,12 +38,28 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Jarvis Strong",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, Android",
+        "url": "https://jarvis-strong-app.vercel.app/",
+        "image": "https://jarvis-strong-app.vercel.app/icon-512.png",
+        "description": "Jarvis Strong is a gamified fitness tracker with workout logging, nutrition tracking, ranks, schedule completion, and cloud sync.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>Jarvis Strong</title>
+    <title>Jarvis Strong | Gamified Fitness Tracker</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-
