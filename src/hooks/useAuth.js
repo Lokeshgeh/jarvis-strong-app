@@ -13,7 +13,10 @@ export function useAuth() {
     }
 
     const client = getSupabase();
-    await client.from("profiles").upsert({ id: user.id, ...starterProfile }, { onConflict: "id" });
+    const { error } = await client.from("profiles").upsert({ id: user.id, ...starterProfile }, { onConflict: "id" });
+    if (error) {
+      throw error;
+    }
   }, []);
 
   useEffect(() => {
@@ -22,31 +25,77 @@ export function useAuth() {
       return undefined;
     }
 
+    let cancelled = false;
     const client = getSupabase();
-
-    client.auth.getSession().then(async ({ data, error }) => {
-      if (error) {
-        setAuthError(error.message);
+    const finishLoading = () => {
+      if (!cancelled) {
+        setLoading(false);
       }
+    };
 
-      setSession(data.session ?? null);
-      if (data.session?.user) {
-        await ensureProfile(data.session.user);
+    const restoreSession = async () => {
+      try {
+        const sessionResult = await Promise.race([
+          client.auth.getSession(),
+          new Promise((_, reject) => {
+            window.setTimeout(() => reject(new Error("Session restore timed out.")), 8000);
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        const { data, error } = sessionResult;
+
+        if (error) {
+          setAuthError(error.message);
+        }
+
+        setSession(data?.session ?? null);
+        finishLoading();
+
+        if (data?.session?.user) {
+          try {
+            await ensureProfile(data.session.user);
+          } catch (profileError) {
+            if (!cancelled) {
+              setAuthError(profileError.message || "Could not sync your profile yet.");
+            }
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAuthError(error.message || "Could not restore session.");
+          setSession(null);
+        }
+        finishLoading();
       }
-      setLoading(false);
-    });
+    };
+
+    restoreSession();
 
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (cancelled) return;
+
       setSession(nextSession);
+      finishLoading();
+
       if (nextSession?.user) {
-        await ensureProfile(nextSession.user);
+        try {
+          await ensureProfile(nextSession.user);
+        } catch (profileError) {
+          if (!cancelled) {
+            setAuthError(profileError.message || "Could not sync your profile yet.");
+          }
+        }
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [ensureProfile]);
 
   const signIn = useCallback(async ({ email, password }) => {
