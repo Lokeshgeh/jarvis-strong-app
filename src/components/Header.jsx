@@ -1,12 +1,13 @@
 import { useAppState } from "../store/globalState";
+import { Icon } from "./icons";
 
 const actionMap = {
   workout: "+",
-  home: "??",
-  ranks: "?",
+  home: "bell",
+  ranks: "help",
   nutrition: "+",
-  friends: "??",
-  profile: "??",
+  friends: "friends",
+  profile: "settings",
 };
 
 export default function Header({ profile, syncStamp }) {
@@ -40,11 +41,11 @@ export default function Header({ profile, syncStamp }) {
 
         <div className="flex flex-1 items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-card/85 px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <span>??</span>
+            <Icon name="fire" className="h-4 w-4" />
             <span>{streak}</span>
           </div>
           <div className="flex items-center gap-2 text-sm font-semibold text-blue">
-            <span>??</span>
+            <Icon name="xp" className="h-4 w-4" />
             <span>{xp}</span>
           </div>
           <div className="rounded-full bg-green/20 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-green">
@@ -56,7 +57,7 @@ export default function Header({ profile, syncStamp }) {
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/6 text-lg"
             title={syncStamp ? `Synced ${new Date(syncStamp).toLocaleTimeString()}` : "Action"}
           >
-            {actionMap[activeTab]}
+            {actionMap[activeTab] === "+" ? "+" : <Icon name={actionMap[activeTab]} className="h-5 w-5" />}
           </button>
         </div>
       </div>

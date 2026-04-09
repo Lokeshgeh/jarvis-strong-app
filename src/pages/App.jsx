@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
 import AddFoodModal from "../components/modals/AddFoodModal";
 import AddRoutineModal from "../components/modals/AddRoutineModal";
+import InfoModal from "../components/modals/InfoModal";
 import LogWeightModal from "../components/modals/LogWeightModal";
 import SettingsModal from "../components/modals/SettingsModal";
 import FriendsTab from "../components/tabs/FriendsTab";
@@ -25,7 +26,16 @@ function LoadingScreen({ label }) {
 }
 
 function ConfigScreen() {
-  return <div className="app-shell flex min-h-screen items-center justify-center px-4"><div className="mobile-frame rounded-[32px] border border-white/10 bg-card p-6"><h1 className="text-3xl font-bold text-text">Supabase setup required</h1><p className="mt-4 text-sm text-text2">Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your <code>.env</code> file, then restart Vite. The app is built to use cloud storage only.</p></div></div>;
+  return (
+    <div className="app-shell flex min-h-screen items-center justify-center px-4">
+      <div className="mobile-frame rounded-[32px] border border-white/10 bg-card p-6">
+        <h1 className="text-3xl font-bold text-text">Supabase setup required</h1>
+        <p className="mt-4 text-sm text-text2">
+          Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your <code>.env</code> file, then restart Vite. The app is built to use cloud storage only.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -34,7 +44,14 @@ export default function App() {
   const workoutData = useWorkouts(auth.user);
   const nutrition = useNutrition(auth.user);
 
-  const stats = useMemo(() => ({ workouts: workoutData.workouts.length, streak: workoutData.profile?.streak ?? 46, records: workoutData.workouts.reduce((sum, workout) => sum + Number(workout.records_broken ?? 0), 0) }), [workoutData.profile?.streak, workoutData.workouts]);
+  const stats = useMemo(
+    () => ({
+      workouts: workoutData.workouts.length,
+      streak: workoutData.profile?.streak ?? 46,
+      records: workoutData.workouts.reduce((sum, workout) => sum + Number(workout.records_broken ?? 0), 0),
+    }),
+    [workoutData.profile?.streak, workoutData.workouts]
+  );
 
   if (!auth.isSupabaseReady) return <ConfigScreen />;
   if (auth.loading) return <LoadingScreen label="Restoring session..." />;
@@ -42,6 +59,8 @@ export default function App() {
   if (workoutData.loading || nutrition.loading) return <LoadingScreen label="Syncing your cloud dashboard..." />;
 
   const { activeTab, setActiveTab, setSubTab, overlay, openOverlay, closeOverlay, modal, openModal, closeModal, selectedDate, setSelectedDate } = appState;
+
+  const openInfo = (title, body) => openModal("info", { title, body });
 
   const handleSaveFood = async (entry) => {
     if (entry.id) {
@@ -75,21 +94,89 @@ export default function App() {
 
   const renderTab = () => {
     if (activeTab === "workout") {
-      return <WorkoutTab routines={workoutData.routines} weeklyPlan={workoutData.weeklyPlan} scheduleCompletions={workoutData.scheduleCompletions} onToggleSchedule={workoutData.toggleScheduleBlock} onOpenRoutine={(routine) => openOverlay("routine", routine)} onStartWorkout={(routine) => openOverlay("workout", routine)} onOpenRoutineModal={(routine = null) => openModal("routine", routine)} onDuplicateRoutine={workoutData.duplicateRoutine} onDeleteRoutine={workoutData.deleteRoutine} />;
+      return (
+        <WorkoutTab
+          routines={workoutData.routines}
+          weeklyPlan={workoutData.weeklyPlan}
+          scheduleCompletions={workoutData.scheduleCompletions}
+          onToggleSchedule={workoutData.toggleScheduleBlock}
+          onOpenRoutine={(routine) => openOverlay("routine", routine)}
+          onStartWorkout={(routine) => openOverlay("workout", routine)}
+          onOpenRoutineModal={(routine = null) => openModal("routine", routine)}
+          onDuplicateRoutine={workoutData.duplicateRoutine}
+          onDeleteRoutine={workoutData.deleteRoutine}
+        />
+      );
     }
+
     if (activeTab === "home") {
-      return <HomeTab workouts={workoutData.workouts} bodyweightLog={workoutData.bodyweightLog} goals={workoutData.goals} friends={workoutData.friends} onSaveGoal={workoutData.saveGoal} onOpenWeightModal={() => openModal("weight")} onGoToRanks={() => { setActiveTab("ranks"); setSubTab("ranks", "bodygraph"); }} />;
+      return (
+        <HomeTab
+          workouts={workoutData.workouts}
+          bodyweightLog={workoutData.bodyweightLog}
+          goals={workoutData.goals}
+          friends={workoutData.friends}
+          onSaveGoal={workoutData.saveGoal}
+          onOpenWeightModal={() => openModal("weight")}
+          onGoToRanks={() => {
+            setActiveTab("ranks");
+            setSubTab("ranks", "bodygraph");
+          }}
+          onOpenInfo={openInfo}
+        />
+      );
     }
+
     if (activeTab === "ranks") {
-      return <RanksTab profile={workoutData.profile} workouts={workoutData.workouts} galleryEntries={workoutData.galleryEntries} onSaveExerciseRank={workoutData.saveExerciseRank} />;
+      return <RanksTab profile={workoutData.profile} workouts={workoutData.workouts} galleryEntries={workoutData.galleryEntries} onSaveExerciseRank={workoutData.saveExerciseRank} onOpenInfo={openInfo} />;
     }
+
     if (activeTab === "nutrition") {
-      return <NutritionTab nutritionEntries={nutrition.nutritionEntries} bodyweightLog={workoutData.bodyweightLog} mealPlans={workoutData.mealPlans} selectedDate={selectedDate} setSelectedDate={setSelectedDate} onOpenFoodModal={(mealType, entry = null) => openModal("food", { mealType, entry })} onDeleteFood={nutrition.deleteFood} onSaveMealPlanEntry={workoutData.saveMealPlanEntry} onResetMealPlan={workoutData.resetMealPlan} onQuickAddRecipe={(recipe) => nutrition.addFood({ log_date: selectedDate, meal_type: recipe.mealType, food_name: recipe.name, quantity: "1 serving", calories: recipe.kcal, protein_g: Math.round(recipe.kcal * 0.08), carbs_g: Math.round(recipe.kcal * 0.11), fat_g: Math.round(recipe.kcal * 0.03), fiber_g: 4 })} />;
+      return (
+        <NutritionTab
+          nutritionEntries={nutrition.nutritionEntries}
+          bodyweightLog={workoutData.bodyweightLog}
+          mealPlans={workoutData.mealPlans}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          onOpenFoodModal={(mealType, entry = null) => openModal("food", { mealType, entry })}
+          onDeleteFood={nutrition.deleteFood}
+          onSaveMealPlanEntry={workoutData.saveMealPlanEntry}
+          onResetMealPlan={workoutData.resetMealPlan}
+          onQuickAddRecipe={(recipe) =>
+            nutrition.addFood({
+              log_date: selectedDate,
+              meal_type: recipe.mealType,
+              food_name: recipe.name,
+              quantity: "1 serving",
+              calories: recipe.kcal,
+              protein_g: Math.round(recipe.kcal * 0.08),
+              carbs_g: Math.round(recipe.kcal * 0.11),
+              fat_g: Math.round(recipe.kcal * 0.03),
+              fiber_g: 4,
+            })
+          }
+        />
+      );
     }
+
     if (activeTab === "friends") {
-      return <FriendsTab user={auth.user} friends={workoutData.friends} onAddFriend={workoutData.addFriend} onRemoveFriend={workoutData.removeFriend} />;
+      return <FriendsTab user={auth.user} friends={workoutData.friends} onAddFriend={workoutData.addFriend} onRemoveFriend={workoutData.removeFriend} onOpenInfo={openInfo} />;
     }
-    return <ProfileTab profile={workoutData.profile} workouts={workoutData.workouts} achievements={workoutData.achievements} routines={workoutData.routines} goals={workoutData.goals} onSaveProfile={handleSaveProfile} onOpenSettings={() => openModal("settings")} onOpenRoutine={(routine) => openOverlay("routine", routine)} />;
+
+    return (
+      <ProfileTab
+        profile={workoutData.profile}
+        workouts={workoutData.workouts}
+        achievements={workoutData.achievements}
+        routines={workoutData.routines}
+        goals={workoutData.goals}
+        onSaveProfile={handleSaveProfile}
+        onOpenSettings={() => openModal("settings")}
+        onOpenRoutine={(routine) => openOverlay("routine", routine)}
+        onOpenInfo={openInfo}
+      />
+    );
   };
 
   return (
@@ -108,8 +195,8 @@ export default function App() {
         <AddFoodModal open={modal.type === "food" || (modal.type === "quick-add" && activeTab === "nutrition")} mealType={modal.payload?.mealType ?? "breakfast"} initialEntry={modal.payload?.entry ?? null} selectedDate={selectedDate} onClose={closeModal} onSave={handleSaveFood} />
         <LogWeightModal open={modal.type === "weight"} onClose={closeModal} onSave={async (weightKg) => { await workoutData.logBodyweight(weightKg); closeModal(); }} />
         <SettingsModal open={modal.type === "settings"} profile={workoutData.profile} stats={stats} onClose={closeModal} onSave={async (draft) => { await workoutData.saveProfile(draft); closeModal(); }} onExport={handleExport} onReset={handleReset} onSignOut={auth.signOut} />
+        <InfoModal open={modal.type === "info"} title={modal.payload?.title ?? ""} body={modal.payload?.body ?? ""} onClose={closeModal} />
       </div>
     </div>
   );
 }
-

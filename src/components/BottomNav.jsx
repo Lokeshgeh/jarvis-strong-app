@@ -1,12 +1,13 @@
 import { useAppState } from "../store/globalState";
+import { Icon } from "./icons";
 
 const tabs = [
-  { id: "workout", label: "Workout", icon: "?", activeColor: "text-blue" },
-  { id: "home", label: "Home", icon: "??", activeColor: "text-blue" },
-  { id: "ranks", label: "Ranks", icon: "??", activeColor: "text-orange" },
-  { id: "nutrition", label: "Nutrition", icon: "??", activeColor: "text-red" },
-  { id: "friends", label: "Friends", icon: "??", activeColor: "text-blue" },
-  { id: "profile", label: "Profile", icon: "??", activeColor: "text-blue" },
+  { id: "workout", label: "Workout", icon: "workout", activeColor: "text-blue" },
+  { id: "home", label: "Home", icon: "home", activeColor: "text-blue" },
+  { id: "ranks", label: "Ranks", icon: "ranks", activeColor: "text-orange" },
+  { id: "nutrition", label: "Nutrition", icon: "nutrition", activeColor: "text-red" },
+  { id: "friends", label: "Friends", icon: "friends", activeColor: "text-blue" },
+  { id: "profile", label: "Profile", icon: "profile", activeColor: "text-blue" },
 ];
 
 export default function BottomNav() {
@@ -28,7 +29,7 @@ export default function BottomNav() {
               active ? `${tab.activeColor} bg-white/6` : "text-text2"
             }`}
           >
-            <span className="text-lg">{tab.icon}</span>
+            <Icon name={tab.icon} className="h-5 w-5" />
             <span>{tab.label}</span>
           </button>
         );
