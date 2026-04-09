@@ -33,12 +33,51 @@ export function useAuth() {
       }
     };
 
+    const queueProfileSync = (user) => {
+      if (!user) return;
+
+      window.setTimeout(() => {
+        ensureProfile(user).catch((profileError) => {
+          if (!cancelled) {
+            setAuthError(profileError.message || "Could not sync your profile yet.");
+          }
+        });
+      }, 0);
+    };
+
+    const bootstrap = async () => {
+      try {
+        const { data, error } = await client.auth.getSession();
+        if (cancelled) return;
+
+        if (error) {
+          setAuthError(error.message);
+        } else {
+          setAuthError("");
+        }
+
+        setSession(data?.session ?? null);
+        if (data?.session?.user) {
+          queueProfileSync(data.session.user);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAuthError(error.message || "Could not restore session.");
+        }
+      } finally {
+        finishLoading();
+      }
+    };
+
+    bootstrap();
+
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange(async (event, nextSession) => {
+    } = client.auth.onAuthStateChange((event, nextSession) => {
       if (cancelled) return;
 
       if (event === "SIGNED_OUT") {
+        setAuthError("");
         setSession(null);
         finishLoading();
         return;
@@ -48,29 +87,14 @@ export function useAuth() {
         return;
       }
 
+      setAuthError("");
       setSession(nextSession);
       finishLoading();
-
-      if (nextSession.user) {
-        try {
-          await ensureProfile(nextSession.user);
-        } catch (profileError) {
-          if (!cancelled) {
-            setAuthError(profileError.message || "Could not sync your profile yet.");
-          }
-        }
-      }
+      queueProfileSync(nextSession.user);
     });
-
-    // Supabase emits INITIAL_SESSION after storage is loaded, but we keep a soft
-    // fallback so the shell never hangs forever if the event is delayed.
-    const loadingTimeout = window.setTimeout(() => {
-      finishLoading();
-    }, 4000);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [ensureProfile]);
