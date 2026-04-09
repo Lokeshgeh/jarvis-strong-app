@@ -75,13 +75,23 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = client.auth.onAuthStateChange(async (event, nextSession) => {
       if (cancelled) return;
+
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        finishLoading();
+        return;
+      }
+
+      if (!nextSession) {
+        return;
+      }
 
       setSession(nextSession);
       finishLoading();
 
-      if (nextSession?.user) {
+      if (nextSession.user) {
         try {
           await ensureProfile(nextSession.user);
         } catch (profileError) {
