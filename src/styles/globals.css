@@ -1,21 +1,23 @@
 :root {
-  --bg: #0A0A14;
-  --card: #10102A;
-  --card-hover: #1A1A35;
-  --border: #2A2A50;
-  --blue: #00BFFF;
-  --orange: #FF6B35;
-  --gold: #FFD700;
-  --green: #22C55E;
-  --red: #EF4444;
-  --purple: #A78BFA;
-  --pink: #F472B6;
-  --text: #FFFFFF;
-  --text2: #9CA3AF;
-  --text3: #6B7280;
+  --bg: #efeeec;
+  --card: #ffffff;
+  --card-hover: #f7f4ef;
+  --border: #dfd8ce;
+  --blue: #151515;
+  --orange: #e36a43;
+  --gold: #e6b85c;
+  --green: #6a9b72;
+  --red: #d86b50;
+  --purple: #9b91e8;
+  --pink: #f1a3a5;
+  --text: #171512;
+  --text2: #625d56;
+  --text3: #9d978f;
   --font: "Space Grotesk", sans-serif;
   --mono: "JetBrains Mono", monospace;
-  --radius: 14px;
+  --radius: 22px;
+  --shadow-soft: 0 20px 40px rgba(110, 94, 74, 0.08);
+  --shadow-float: 0 18px 30px rgba(110, 94, 74, 0.12);
 }
 
 @tailwind base;
@@ -23,11 +25,11 @@
 @tailwind utilities;
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   background:
-    radial-gradient(circle at top, rgba(0, 191, 255, 0.18), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(255, 107, 53, 0.12), transparent 24%),
-    var(--bg);
+    radial-gradient(circle at top left, rgba(227, 106, 67, 0.08), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.04), transparent 28%),
+    linear-gradient(180deg, #f2f0ed 0%, #ece8e3 100%);
 }
 
 body {
@@ -56,14 +58,15 @@ textarea {
 .app-shell {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(0, 191, 255, 0.08) 0%, rgba(10, 10, 20, 0) 12%),
-    var(--bg);
+    radial-gradient(circle at top center, rgba(227, 106, 67, 0.08), transparent 16%),
+    linear-gradient(180deg, #f2f0ed 0%, #ebe7e2 100%);
 }
 
 .glass-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
 }
 
 .mobile-frame {
@@ -74,16 +77,16 @@ textarea {
 }
 
 .content-safe {
-  padding-top: 110px;
-  padding-bottom: 92px;
+  padding-top: 118px;
+  padding-bottom: 112px;
 }
 
 .neon-outline {
-  box-shadow: 0 0 0 1px rgba(0, 191, 255, 0.18), 0 18px 48px rgba(0, 191, 255, 0.12);
+  box-shadow: 0 0 0 1px rgba(227, 106, 67, 0.18), 0 18px 48px rgba(227, 106, 67, 0.12);
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, var(--blue), #71d5ff 50%, var(--gold));
+  background: linear-gradient(90deg, #111111, #3d3730 50%, var(--orange));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -133,16 +136,20 @@ textarea {
 }
 
 .ring {
-  background: conic-gradient(var(--blue) var(--progress, 40%), rgba(255, 255, 255, 0.08) 0);
+  background: conic-gradient(var(--orange) var(--progress, 40%), rgba(0, 0, 0, 0.08) 0);
 }
 
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(circle at center, black 30%, transparent 95%);
+  background-image: linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 90%);
   pointer-events: none;
+}
+
+::selection {
+  background: rgba(227, 106, 67, 0.18);
 }
 

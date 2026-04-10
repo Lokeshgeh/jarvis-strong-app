@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import VolumeBarChart from "../charts/VolumeBarChart";
 import WeightLineChart from "../charts/WeightLineChart";
 import { Icon } from "../icons";
@@ -6,18 +6,40 @@ import { useAppState } from "../../store/globalState";
 
 function SegmentTabs({ items, active, onChange }) {
   return (
-    <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">
+    <div className="mx-auto flex w-full max-w-[240px] rounded-full bg-[#e6e1da] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
-          className={`rounded-full px-4 py-2 text-sm font-semibold ${active === item.id ? "bg-blue text-[#03131d]" : "text-text2"}`}
+          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            active === item.id ? "bg-white text-text shadow-[0_10px_18px_rgba(110,94,74,0.1)]" : "text-text2"
+          }`}
         >
           {item.label}
         </button>
       ))}
     </div>
+  );
+}
+
+function SummaryMetric({ label, value, accent = "text-text" }) {
+  return (
+    <div className="rounded-[24px] bg-white p-4 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+      <p className="text-sm text-text2">{label}</p>
+      <p className={`mt-2 text-3xl font-bold ${accent}`}>{value}</p>
+    </div>
+  );
+}
+
+function QuickAction({ icon, label }) {
+  return (
+    <button type="button" className="flex flex-col items-center gap-3">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-text shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+        <Icon name={icon} className="h-5 w-5" />
+      </span>
+      <span className="text-xs font-medium text-text2">{label}</span>
+    </button>
   );
 }
 
@@ -31,7 +53,7 @@ export default function HomeTab({
   onGoToRanks,
   onOpenInfo,
 }) {
-  const { subTabs, setSubTab } = useAppState();
+  const { subTabs, setSubTab, setActiveTab } = useAppState();
   const activeTab = subTabs.home;
 
   const lastSevenWorkouts = workouts.slice(0, 7).reverse();
@@ -41,39 +63,18 @@ export default function HomeTab({
   const caloriesBurned = Math.round(totalVolume14 / 150);
   const bodyweightLabels = bodyweightLog.map((entry) => entry.logged_at?.slice(5));
   const bodyweightValues = bodyweightLog.map((entry) => Number(entry.weight_kg));
+  const latestWeight = bodyweightValues.at(-1) ?? 49;
+  const stepsValue = workouts.length ? 2340 + workouts.length * 82 : 2340;
+  const dailyGoalProgress = Math.min(100, Math.round((stepsValue / 8000) * 100));
 
   const discoveryCards = useMemo(
     () => [
-      {
-        key: "leaderboards",
-        icon: "ranks",
-        title: "Leaderboards",
-        subtitle: "How do you stack up?",
-        body: "This panel will show your global and regional standing once more community activity is logged into your account.",
-      },
-      {
-        key: "feeds",
-        icon: "friends",
-        title: "Social Feeds",
-        subtitle: "Lifting with the world",
-        body: "The discovery feed highlights recent training sessions from your network and public athletes using the same app shell.",
-      },
-      {
-        key: "calendar",
-        icon: "spark",
-        title: "Streak Calendar",
-        subtitle: "Track your consistency",
-        body: "Your streak calendar ties workouts and completed schedule blocks together so you can see consistency at a glance.",
-      },
-      {
-        key: "calculator",
-        icon: "help",
-        title: "Rank Calculator",
-        subtitle: "Quickly check your exercise ranks",
-        body: "The rank calculator estimates LP and tier based on the weight and reps you enter for each exercise.",
-      },
+      { key: "leaderboards", icon: "ranks", title: "Leaderboards", subtitle: "How do you stack up?" },
+      { key: "feeds", icon: "friends", title: "Social Feeds", subtitle: "Lifting with the world" },
+      { key: "calendar", icon: "spark", title: "Streak Calendar", subtitle: "Track your consistency" },
+      { key: "calculator", icon: "help", title: "Rank Calculator", subtitle: "Quick rank checks" },
     ],
-    []
+    [],
   );
 
   const promptForGoal = () => {
@@ -92,189 +93,168 @@ export default function HomeTab({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <SegmentTabs
         items={[
-          { id: "forYou", label: "For You" },
-          { id: "friends", label: "Friends" },
-          { id: "discovery", label: "Discovery" },
+          { id: "forYou", label: "Daily" },
+          { id: "friends", label: "Weekly" },
+          { id: "discovery", label: "Monthly" },
         ]}
         active={activeTab}
         onChange={(next) => setSubTab("home", next)}
       />
 
-      <button
-        type="button"
-        onClick={onGoToRanks}
-        className="w-full rounded-[28px] border border-purple/30 bg-gradient-to-br from-[#1d1638] via-card to-[#10102A] p-5 text-left shadow-glow"
-      >
-        <p className="text-xs uppercase tracking-[0.28em] text-purple">Rank booster</p>
-        <div className="mt-3 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-text">Press to see your body&apos;s rank</h2>
-            <p className="mt-2 text-sm text-text2">Crystalline bodygraph insights with your next LP jump mapped visually.</p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-purple/25 bg-white/5 text-purple">
-            <Icon name="ranks" className="h-8 w-8" />
-          </div>
-        </div>
-      </button>
-
       {activeTab === "forYou" && (
         <div className="space-y-5">
-          <section className="rounded-[24px] border border-gold/20 bg-gradient-to-br from-gold/20 to-card p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-gold">Getting Started</p>
-                <h3 className="mt-2 text-xl font-bold text-text">First Week Challenge</h3>
-                <p className="mt-2 text-sm text-text2">Keep working out for a week to earn even more rewards.</p>
-              </div>
-              <div className="text-right">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-gold/30 bg-[#0d0d1a] text-xl font-bold text-gold">
-                  60%
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenInfo("First Week Challenge", "Complete one full week of logged training sessions to unlock bonus XP, a consistency badge, and rank momentum." )}
-                  className="mt-3 rounded-full bg-gold px-4 py-2 text-sm font-bold text-[#221700]"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
+          <section className="px-1 pt-1">
+            <h1 className="text-center text-5xl font-bold leading-[0.9] text-text">
+              Let&apos;s start
+              <br />
+              strong!
+            </h1>
           </section>
 
-          <section className="rounded-[24px] border border-white/10 bg-card p-5">
-            <div className="flex items-center justify-between gap-4">
+          <section className="rounded-[30px] bg-[#e8e5e1] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-text3">Your Goal</p>
-                <h3 className="mt-2 text-xl font-bold text-text">Challenge yourself</h3>
+                <p className="max-w-[170px] text-2xl font-semibold leading-tight text-text">
+                  You&apos;re {dailyGoalProgress}% to your daily goal
+                </p>
               </div>
-              <button type="button" onClick={promptForGoal} className="rounded-full bg-blue px-4 py-2 text-sm font-bold text-[#03131d]">
-                + Add Goal
+              <button type="button" onClick={() => setActiveTab("workout")} className="flex h-12 w-12 items-center justify-center rounded-full bg-orange text-white shadow-[0_14px_24px_rgba(227,106,67,0.28)]">
+                <span className="text-xl">⚡</span>
               </button>
             </div>
-            <div className="mt-4 space-y-3">
-              {goals.map((goal) => (
-                <div key={goal.id} className="rounded-2xl border border-white/8 bg-[#090912] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-text">{goal.target_value}</p>
-                      <p className="text-sm text-text3">{goal.goal_type}</p>
-                    </div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-blue">{goal.current_value}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-6">
+              <div className="h-4 overflow-hidden rounded-full bg-white/80">
+                <div className="h-full rounded-full bg-[linear-gradient(90deg,#1c1b19,#e36a43)]" style={{ width: `${dailyGoalProgress}%` }} />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm font-medium text-text2">
+                <span>{stepsValue.toLocaleString()}</span>
+                <span>8,000</span>
+              </div>
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-white/10 bg-card p-5">
-            <div className="flex items-center justify-between gap-3">
+          <section className="grid grid-cols-4 gap-3">
+            <QuickAction icon="workout" label="Workout" />
+            <QuickAction icon="nutrition" label="Meal" />
+            <QuickAction icon="spark" label="Water" />
+            <QuickAction icon="xp" label="Sync" />
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-text">Daily Summary</h2>
+              <button type="button" onClick={promptForGoal} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-text shadow-[0_12px_22px_rgba(110,94,74,0.08)]">
+                Add goal
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <SummaryMetric label="Steps" value={stepsValue.toLocaleString()} />
+              <SummaryMetric label="Calories Burned" value={`${caloriesBurned} kcal`} accent="text-orange" />
+              <SummaryMetric label="Workout Hours" value={`${Math.max(1, Math.round(totalDuration14 / 3600))}h`} />
+              <SummaryMetric label="Bodyweight" value={`${latestWeight}kg`} accent="text-orange" />
+            </div>
+          </section>
+
+          <button
+            type="button"
+            onClick={() => onOpenInfo("Recovery routine", "Stretching after workouts improves your sleep quality, mobility, and recovery rhythm.")}
+            className="w-full rounded-[30px] bg-orange p-5 text-left text-white shadow-[0_22px_36px_rgba(227,106,67,0.22)]"
+          >
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-text3">Last 14 Workouts</p>
-                <h3 className="mt-2 text-xl font-bold text-text">{totalVolume14.toFixed(1)} kg</h3>
-                <p className="text-sm text-blue">Progressive overload trend</p>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-right text-sm">
-                <div>
-                  <p className="text-text3">Duration</p>
-                  <p className="font-semibold text-text">{Math.round(totalDuration14 / 3600)}h</p>
-                </div>
-                <div>
-                  <p className="text-text3">Records</p>
-                  <p className="font-semibold text-text">{totalRecords14}</p>
-                </div>
-                <div>
-                  <p className="text-text3">Burned</p>
-                  <p className="font-semibold text-text">{caloriesBurned} cal</p>
+                <p className="max-w-[230px] text-2xl font-semibold leading-tight">
+                  Stretching after workouts improves your sleep quality.
+                </p>
+                <div className="mt-5 flex gap-3">
+                  <span className="rounded-full border border-white/45 px-5 py-2 text-sm font-semibold text-white/92">Dismiss</span>
+                  <span className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#c85c39]">Set Routine</span>
                 </div>
               </div>
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/22 text-2xl">◔</span>
+            </div>
+          </button>
+
+          <section className="grid grid-cols-2 gap-3">
+            <div className="rounded-[28px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+              <p className="text-sm text-text2">Steps</p>
+              <p className="mt-2 text-4xl font-bold text-text">{stepsValue.toLocaleString()}</p>
+              <div className="mt-6 flex h-14 items-end gap-2">
+                {[18, 34, 22, 48, 56, 28, 44].map((height, index) => (
+                  <span key={height + index} className={`w-2 rounded-full ${index === 4 ? "bg-text" : "bg-[#ece7df]"}`} style={{ height }} />
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[28px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+              <p className="text-sm text-text2">Distance</p>
+              <p className="mt-2 text-4xl font-bold text-text">3.4km</p>
+              <svg viewBox="0 0 140 60" className="mt-5 h-14 w-full text-orange">
+                <path d="M10 45C28 20 34 18 48 32s20 20 36 7 22-14 46-4" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" />
+              </svg>
+            </div>
+          </section>
+
+          <section className="rounded-[30px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-text2">Progressive overload</p>
+                <h3 className="mt-1 text-2xl font-bold text-text">{totalVolume14.toFixed(0)} kg</h3>
+              </div>
+              <button type="button" onClick={onGoToRanks} className="rounded-full bg-[#f5efe8] px-4 py-2 text-sm font-semibold text-text">
+                Open body rank
+              </button>
             </div>
             <div className="chart-shell mt-4">
-              <VolumeBarChart
-                labels={lastSevenWorkouts.map((_, index) => `S${index + 1}`)}
-                values={lastSevenWorkouts.map((workout) => Number(workout.volume_kg ?? 0))}
-              />
-            </div>
-          </section>
-
-          <section className="rounded-[24px] border border-white/10 bg-card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-text3">Bodyweight</p>
-                <h3 className="mt-2 text-xl font-bold text-text">{bodyweightValues.at(-1) ?? 49} kg</h3>
-                <p className="text-sm text-blue">Weight gain trend</p>
-              </div>
-              <button type="button" onClick={onOpenWeightModal} className="rounded-full bg-blue px-4 py-2 text-sm font-bold text-[#03131d]">
-                + Log
-              </button>
-            </div>
-            <div className="chart-shell">
-              <WeightLineChart labels={bodyweightLabels} values={bodyweightValues} />
+              <VolumeBarChart labels={lastSevenWorkouts.map((_, index) => `W${index + 1}`)} values={lastSevenWorkouts.map((workout) => Number(workout.volume_kg ?? 0))} color="#e36a43" />
             </div>
           </section>
         </div>
       )}
 
       {activeTab === "friends" && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          <section className="rounded-[30px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-text2">Weekly overview</p>
+                <h3 className="mt-1 text-2xl font-bold text-text">You burned {caloriesBurned} kcal across {Math.max(1, workouts.slice(0, 3).length)} activities</h3>
+              </div>
+              <button type="button" onClick={onOpenWeightModal} className="rounded-full bg-[#f6efe8] px-4 py-2 text-sm font-semibold text-orange">
+                Log weight
+              </button>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-[24px] bg-[#faf7f3] p-4">
+                <p className="text-sm text-text2">Running</p>
+                <p className="mt-1 text-2xl font-bold text-text">120 kcal</p>
+              </div>
+              <div className="rounded-[24px] bg-[#faf7f3] p-4">
+                <p className="text-sm text-text2">Push Day</p>
+                <p className="mt-1 text-2xl font-bold text-text">200 kcal</p>
+              </div>
+            </div>
+          </section>
+
           {friends.map((friend) => (
-            <article key={friend.id} className="rounded-[24px] border border-white/10 bg-card p-5">
-              <div className="flex items-center justify-between gap-4">
+            <article key={friend.id} className="rounded-[30px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ backgroundColor: friend.profile?.avatar_color ?? "#00BFFF" }}
-                  >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: friend.profile?.avatar_color ?? "#e36a43" }}>
                     {friend.profile?.username?.slice(0, 2).toUpperCase() ?? "JS"}
                   </div>
                   <div>
                     <p className="font-semibold text-text">{friend.profile?.username ?? "Friend"}</p>
-                    <p className="text-sm text-text3">
-                      {friend.workout?.completed_at ? new Date(friend.workout.completed_at).toLocaleString() : "No workout yet"}
-                    </p>
+                    <p className="text-sm text-text2">{friend.workout?.completed_at ? new Date(friend.workout.completed_at).toLocaleDateString() : "No workout logged yet"}</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-orange/10 px-3 py-1 text-sm font-semibold text-orange">Lv.{friend.profile?.level ?? 1}</span>
+                <span className="rounded-full bg-[#f6efe8] px-3 py-2 text-xs font-semibold text-orange">Lv.{friend.profile?.level ?? 1}</span>
               </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-3 rounded-2xl border border-white/8 bg-[#090912] p-4 text-sm">
-                <div>
-                  <p className="text-text3">Streak</p>
-                  <p className="mt-1 flex items-center gap-2 font-semibold text-text">
-                    <Icon name="fire" className="h-4 w-4 text-orange" />
-                    {friend.profile?.streak ?? 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-text3">Duration</p>
-                  <p className="font-semibold text-text">{friend.workout ? `${Math.round(friend.workout.duration_seconds / 60)}m` : "--"}</p>
-                </div>
-                <div>
-                  <p className="text-text3">Record</p>
-                  <p className="mt-1 flex items-center gap-2 font-semibold text-text">
-                    <Icon name="spark" className="h-4 w-4 text-gold" />
-                    {friend.workout?.records_broken ?? 0}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => onOpenInfo("Comment tools", `Comment reactions for ${friend.profile?.username ?? "this athlete"} will plug into the social feed layer next.`)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2"
-                >
-                  Comment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenInfo("Quick reactions", `Quick reactions help you encourage ${friend.profile?.username ?? "your friend"} without leaving the feed.`)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2"
-                >
-                  React
-                </button>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <SummaryMetric label="Streak" value={`${friend.profile?.streak ?? 0}`} accent="text-orange" />
+                <SummaryMetric label="Duration" value={friend.workout ? `${Math.round(friend.workout.duration_seconds / 60)}m` : "--"} />
+                <SummaryMetric label="Records" value={`${friend.workout?.records_broken ?? 0}`} />
               </div>
             </article>
           ))}
@@ -283,40 +263,37 @@ export default function HomeTab({
 
       {activeTab === "discovery" && (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3">
+          <section className="grid grid-cols-2 gap-3">
             {discoveryCards.map((card) => (
               <button
                 key={card.key}
                 type="button"
-                onClick={() => onOpenInfo(card.title, card.body)}
-                className="rounded-[24px] border border-white/10 bg-card p-5 text-left"
+                onClick={() => onOpenInfo(card.title, card.subtitle)}
+                className="rounded-[28px] bg-white p-5 text-left shadow-[0_14px_28px_rgba(110,94,74,0.08)]"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-blue">
-                  <Icon name={card.icon} className="h-6 w-6" />
-                </div>
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f6efe8] text-orange">
+                  <Icon name={card.icon} className="h-5 w-5" />
+                </span>
                 <h3 className="mt-4 text-lg font-semibold text-text">{card.title}</h3>
                 <p className="mt-2 text-sm text-text2">{card.subtitle}</p>
               </button>
             ))}
-          </div>
+          </section>
 
-          <div className="space-y-4">
-            {workouts.slice(0, 4).map((workout) => (
-              <article key={workout.id} className="rounded-[24px] border border-white/10 bg-card p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-text">{workout.routine_name}</p>
-                    <p className="text-sm text-text3">{new Date(workout.completed_at).toLocaleDateString()}</p>
-                  </div>
-                  <div className="rounded-full bg-blue/10 px-3 py-1 text-sm font-semibold text-blue">{workout.sets_completed} sets</div>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-white/8 bg-[#090912] p-4">Volume {Math.round(workout.volume_kg)} kg</div>
-                  <div className="rounded-2xl border border-white/8 bg-[#090912] p-4">Records {workout.records_broken}</div>
-                </div>
-              </article>
-            ))}
-          </div>
+          <section className="rounded-[30px] bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-text2">Weight trend</p>
+                <h3 className="mt-1 text-2xl font-bold text-text">{latestWeight} kg</h3>
+              </div>
+              <button type="button" onClick={onOpenWeightModal} className="rounded-full bg-[#f6efe8] px-4 py-2 text-sm font-semibold text-orange">
+                + Log
+              </button>
+            </div>
+            <div className="chart-shell mt-4">
+              <WeightLineChart labels={bodyweightLabels} values={bodyweightValues} />
+            </div>
+          </section>
         </div>
       )}
     </div>

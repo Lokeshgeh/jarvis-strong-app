@@ -14,7 +14,7 @@ const recipes = [
 ];
 
 function SegmentTabs({ items, active, onChange }) {
-  return <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">{items.map((item) => <button key={item.id} type="button" onClick={() => onChange(item.id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${active === item.id ? "bg-red text-white" : "text-text2"}`}>{item.label}</button>)}</div>;
+  return <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full bg-[#e6e1da] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">{items.map((item) => <button key={item.id} type="button" onClick={() => onChange(item.id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${active === item.id ? "bg-white text-text shadow-[0_10px_18px_rgba(110,94,74,0.1)]" : "text-text2"}`}>{item.label}</button>)}</div>;
 }
 
 export default function NutritionTab({ nutritionEntries, bodyweightLog, mealPlans, selectedDate, setSelectedDate, onOpenFoodModal, onDeleteFood, onSaveMealPlanEntry, onResetMealPlan, onQuickAddRecipe }) {
