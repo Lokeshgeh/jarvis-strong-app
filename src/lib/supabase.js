@@ -11,7 +11,8 @@ export const supabase = isSupabaseReady
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: "jarvis-strong-auth",
+        // Use a versioned key so older broken auth payloads do not keep forcing logout loops.
+        storageKey: "jarvis-strong-auth-v2",
       },
     })
   : null;
