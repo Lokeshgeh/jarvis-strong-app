@@ -9,6 +9,7 @@ import {
   starterProfile,
 } from "../data/defaultRoutines";
 import { getSupabase, isSupabaseReady } from "../lib/supabase";
+import { rankFromLift } from "../lib/rankEngine";
 
 const WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const WEEKLY_ROUTINE = ["Push", "Pull", "Legs", "Rest", "Push", "Pull", "Active Recovery"];
@@ -27,6 +28,14 @@ function dayDiff(fromDay, toDay) {
   const start = new Date(`${fromDay}T00:00:00Z`);
   const end = new Date(`${toDay}T00:00:00Z`);
   return Math.round((end - start) / (1000 * 60 * 60 * 24));
+}
+
+function latestBodyweightValue(log = []) {
+  const latest = [...log]
+    .sort((a, b) => String(a.logged_at ?? "").localeCompare(String(b.logged_at ?? "")))
+    .at(-1);
+  const weight = Number(latest?.weight_kg ?? 70);
+  return Number.isFinite(weight) && weight > 0 ? weight : 70;
 }
 
 function computeNextStreak(workouts, currentStreak, completedAt) {
@@ -451,14 +460,26 @@ export function useWorkouts(user) {
   const saveExerciseRank = useCallback(
     async (entry) => {
       const client = getSupabase();
+      const bodyweightKg = latestBodyweightValue(bodyweightLog);
+      const ranking = rankFromLift({
+        weightKg: Number(entry.weight_kg ?? 0),
+        reps: Number(entry.reps ?? 1),
+        bodyweightKg,
+      });
+      const payload = {
+        ...entry,
+        lp: ranking.lp,
+        tier: ranking.tier,
+      };
+
       if (entry.id) {
-        await client.from("exercise_rank_entries").update(entry).eq("id", entry.id).eq("user_id", user.id);
+        await client.from("exercise_rank_entries").update(payload).eq("id", entry.id).eq("user_id", user.id);
       } else {
-        await client.from("exercise_rank_entries").insert({ user_id: user.id, ...entry });
+        await client.from("exercise_rank_entries").insert({ user_id: user.id, ...payload });
       }
       await refresh();
     },
-    [refresh, user?.id],
+    [bodyweightLog, refresh, user?.id],
   );
 
   const syncAchievements = useCallback(
@@ -497,6 +518,7 @@ export function useWorkouts(user) {
   const finishWorkout = useCallback(
     async (session) => {
       const client = getSupabase();
+      const bodyweightKg = latestBodyweightValue(bodyweightLog);
       const allSets = session.exercises.flatMap((exercise) =>
         exercise.sets
           .filter((set) => set.completed && Number(set.kg) > 0 && Number(set.reps) > 0)
@@ -533,6 +555,58 @@ export function useWorkouts(user) {
         await client.from("workout_sets").insert(setRows);
       }
 
+      const bestSetsByExercise = allSets.reduce((accumulator, set) => {
+        const ranking = rankFromLift({ weightKg: set.weight_kg, reps: set.reps, bodyweightKg });
+        const current = accumulator[set.exercise_name];
+        if (!current || ranking.lp > current.lp) {
+          accumulator[set.exercise_name] = {
+            exercise_name: set.exercise_name,
+            category: set.muscle_group ?? "General",
+            weight_kg: set.weight_kg,
+            reps: set.reps,
+            lp: ranking.lp,
+            tier: ranking.tier,
+          };
+        }
+        return accumulator;
+      }, {});
+      const rankPayload = Object.values(bestSetsByExercise);
+
+      if (rankPayload.length) {
+        const exerciseNames = rankPayload.map((entry) => entry.exercise_name);
+        const { data: existingRankRows } = await client
+          .from("exercise_rank_entries")
+          .select("id, exercise_name")
+          .eq("user_id", user.id)
+          .in("exercise_name", exerciseNames);
+
+        const existingByName = new Map((existingRankRows ?? []).map((entry) => [entry.exercise_name, entry]));
+        const updates = [];
+        const inserts = [];
+
+        rankPayload.forEach((entry) => {
+          const existing = existingByName.get(entry.exercise_name);
+          if (existing) {
+            updates.push(
+              client
+                .from("exercise_rank_entries")
+                .update(entry)
+                .eq("id", existing.id)
+                .eq("user_id", user.id),
+            );
+          } else {
+            inserts.push({ user_id: user.id, ...entry });
+          }
+        });
+
+        if (updates.length) {
+          await Promise.all(updates);
+        }
+        if (inserts.length) {
+          await client.from("exercise_rank_entries").insert(inserts);
+        }
+      }
+
       const nextXp = Number(profile?.xp ?? starterProfile.xp) + setsCompleted * 3;
       const nextStreak = computeNextStreak(workouts, profile?.streak ?? starterProfile.streak, insertedWorkout.completed_at);
       const nextLevel = computeNextLevel(nextXp);
@@ -552,9 +626,10 @@ export function useWorkouts(user) {
         xpGained: setsCompleted * 3,
         level: nextLevel,
         muscles: [...new Set(session.exercises.map((exercise) => exercise.muscle_group))],
+        rankHighlights: rankPayload.sort((a, b) => b.lp - a.lp).slice(0, 3),
       };
     },
-    [profile, refresh, syncAchievements, user?.id, workoutSets, workouts],
+    [bodyweightLog, profile, refresh, syncAchievements, user?.id, workoutSets, workouts],
   );
 
   const addFriend = useCallback(

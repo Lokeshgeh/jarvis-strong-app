@@ -3,6 +3,7 @@ import VolumeBarChart from "../charts/VolumeBarChart";
 import WeightLineChart from "../charts/WeightLineChart";
 import { Icon } from "../icons";
 import { useAppState } from "../../store/globalState";
+import { rankFromLift, tierFromLp } from "../../lib/rankEngine";
 
 function SegmentTabs({ items, active, onChange }) {
   return (
@@ -23,22 +24,26 @@ function SegmentTabs({ items, active, onChange }) {
   );
 }
 
-function getRankFromLevel(level) {
-  if (level >= 35) return "OLYMPIAN";
-  if (level >= 25) return "DIAMOND II";
-  if (level >= 16) return "TITAN II";
-  if (level >= 10) return "TITAN I";
-  if (level >= 5) return "PIONEER";
-  return "ROOKIE";
-}
-
-export default function RanksTab({ profile, workouts, galleryEntries, onSaveExerciseRank, onOpenInfo }) {
+export default function RanksTab({
+  profile,
+  workouts = [],
+  bodyweightLog = [],
+  galleryEntries = [],
+  onSaveExerciseRank,
+  onOpenInfo,
+}) {
   const { subTabs, setSubTab } = useAppState();
   const activeTab = subTabs.ranks;
   const [calculator, setCalculator] = useState({ exercise: "Bench Press", weight: 80, reps: 8 });
   const profileLevel = Number(profile?.level ?? 1);
   const profileXp = Number(profile?.xp ?? 0);
-  const rankName = getRankFromLevel(profileLevel);
+  const rankName = tierFromLp(profileXp);
+  const latestBodyweight = Number(bodyweightLog.at(-1)?.weight_kg ?? 70);
+  const calculatorRank = rankFromLift({
+    weightKg: Number(calculator.weight),
+    reps: Number(calculator.reps),
+    bodyweightKg: latestBodyweight,
+  });
   const nextLevelXp = profileLevel * 100;
   const xpProgress = Math.min(100, Math.round(((profileXp % 100) / 100) * 100));
   const rankSeries = workouts.slice(0, 8).reverse().map((_, index) => Math.max(1, profileLevel - 7 + index));
@@ -46,9 +51,6 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
     .slice(0, 8)
     .reverse()
     .map((workout) => new Date(workout.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
-  const calculatedLp = Math.round(Number(calculator.weight) * 2.6 + Number(calculator.reps) * 15);
-  const calculatedTier =
-    calculatedLp > 620 ? "OLYMPIAN" : calculatedLp > 520 ? "DIAMOND II" : calculatedLp > 420 ? "TITAN II" : "PIONEER";
   const groupedMuscles = useMemo(
     () => [
       ["Arms", "3/3 Complete"],
@@ -83,7 +85,7 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-purple">Your current rank</p>
                 <h2 className="mt-2 text-3xl font-bold text-text">
-                  {rankName} • LV {profileLevel}
+                  {`${rankName} - LV ${profileLevel}`}
                 </h2>
                 <p className="mt-2 text-sm text-text2">XP {profileXp} / {nextLevelXp} to next level</p>
               </div>
@@ -298,10 +300,11 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
           </div>
           <div className="mt-5 rounded-[24px] border border-blue/20 bg-blue/10 p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-blue">Calculated Rank</p>
-            <h3 className="mt-2 text-2xl font-bold text-text">{calculatedTier}</h3>
+            <h3 className="mt-2 text-2xl font-bold text-text">{calculatorRank.tier}</h3>
             <p className="mt-2 text-sm text-text2">
-              {calculator.exercise} - {calculatedLp} LP
+              {calculator.exercise} - {calculatorRank.lp} LP - est 1RM {calculatorRank.oneRepMaxKg}kg
             </p>
+            <p className="mt-1 text-xs text-text3">Using bodyweight baseline: {latestBodyweight}kg</p>
           </div>
         </section>
       )}
@@ -352,3 +355,4 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
     </div>
   );
 }
+

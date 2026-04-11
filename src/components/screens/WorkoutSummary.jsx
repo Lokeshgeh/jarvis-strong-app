@@ -47,6 +47,24 @@ export default function WorkoutSummary({ summary, onBackHome }) {
           ))}
         </div>
       </div>
+      {summary.rankHighlights?.length > 0 && (
+        <div className="mt-5 rounded-[24px] border border-gold/25 bg-card p-5">
+          <p className="text-xs uppercase tracking-[0.24em] text-gold">Top rank gains</p>
+          <div className="mt-3 space-y-3">
+            {summary.rankHighlights.map((entry) => (
+              <div key={`${entry.exercise_name}-${entry.lp}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#090912] px-4 py-3">
+                <div>
+                  <p className="font-semibold text-text">{entry.exercise_name}</p>
+                  <p className="text-xs text-text3">{entry.category}</p>
+                </div>
+                <p className="text-sm font-mono text-blue">
+                  {entry.tier} • {entry.lp} LP
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <button type="button" onClick={onBackHome} className="mt-5 w-full rounded-full bg-blue px-5 py-4 text-sm font-bold text-[#03131d]">
         Back to Home
       </button>

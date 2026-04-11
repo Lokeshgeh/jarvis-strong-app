@@ -128,7 +128,16 @@ export default function App() {
     }
 
     if (activeTab === "ranks") {
-      return <RanksTab profile={workoutData.profile} workouts={workoutData.workouts} galleryEntries={workoutData.galleryEntries} onSaveExerciseRank={workoutData.saveExerciseRank} onOpenInfo={openInfo} />;
+      return (
+        <RanksTab
+          profile={workoutData.profile}
+          workouts={workoutData.workouts}
+          bodyweightLog={workoutData.bodyweightLog}
+          galleryEntries={workoutData.galleryEntries}
+          onSaveExerciseRank={workoutData.saveExerciseRank}
+          onOpenInfo={openInfo}
+        />
+      );
     }
 
     if (activeTab === "nutrition") {
