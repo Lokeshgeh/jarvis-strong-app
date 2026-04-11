@@ -12,10 +12,10 @@ const actionMap = {
 
 export default function Header({ profile, syncStamp }) {
   const { activeTab, setActiveTab, openModal } = useAppState();
-  const xp = Number(profile?.xp ?? 410);
-  const level = Number(profile?.level ?? 27);
-  const streak = Number(profile?.streak ?? 46);
-  const progress = `${Math.min(96, (xp % 100) || 64)}%`;
+  const xp = Number(profile?.xp ?? 0);
+  const level = Number(profile?.level ?? 1);
+  const streak = Number(profile?.streak ?? 0);
+  const progress = `${xp > 0 ? Math.min(96, (xp % 100) || 100) : 4}%`;
   const initials = (profile?.username ?? "Jarvis Strong")
     .split(" ")
     .map((word) => word[0])

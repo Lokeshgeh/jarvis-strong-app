@@ -3,11 +3,11 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid references auth.users primary key,
   username text default 'Jarvis Strong',
-  bio text default 'Diamond II • Discipline-first builder',
+  bio text default 'Discipline-first builder',
   avatar_color text default '#00BFFF',
-  level integer default 27,
-  xp integer default 410,
-  streak integer default 46,
+  level integer default 1,
+  xp integer default 0,
+  streak integer default 0,
   units text default 'kg',
   notification_time text default '04:00',
   is_public boolean default true,
@@ -301,3 +301,4 @@ create policy "Users own meal plans" on public.meal_plan_entries for all using (
 
 drop policy if exists "Users own exercise ranks" on public.exercise_rank_entries;
 create policy "Users own exercise ranks" on public.exercise_rank_entries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
