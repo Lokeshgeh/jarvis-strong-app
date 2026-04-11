@@ -40,24 +40,28 @@ function computeNextStreak(workouts, currentStreak, completedAt) {
   return dayDiff(lastDay, completionDay) === 1 ? Math.max(1, Number(currentStreak ?? 0)) + 1 : 1;
 }
 
-function isLegacyDemoAccount(profileRow, workouts, achievements, bodyweightLog) {
+function isLegacyProfileSeeded(profileRow) {
   if (!profileRow) return false;
 
-  const matchesProfile =
+  return (
     Number(profileRow.level) === LEGACY_DEMO_PROFILE.level &&
     Number(profileRow.xp) === LEGACY_DEMO_PROFILE.xp &&
-    Number(profileRow.streak) === LEGACY_DEMO_PROFILE.streak;
+    Number(profileRow.streak) === LEGACY_DEMO_PROFILE.streak
+  );
+}
 
+function isLikelyLegacyDemoData(workouts, achievements, bodyweightLog) {
   const workoutNames = (workouts ?? []).map((workout) => workout.routine_name);
-  const matchesWorkouts =
-    workoutNames.length === LEGACY_DEMO_WORKOUTS.length &&
-    workoutNames.every((name, index) => name === LEGACY_DEMO_WORKOUTS[index]);
+  const hasOnlyLegacyWorkoutNames =
+    workoutNames.length > 0 &&
+    workoutNames.every((name) => LEGACY_DEMO_WORKOUTS.includes(name));
 
   const unlockedCount = (achievements ?? []).filter((achievement) => achievement.unlocked).length;
-  const matchesAchievements = unlockedCount >= 3;
-  const matchesBodyweight = (bodyweightLog ?? []).length === 3;
+  const isLikelyLegacyAchievements = unlockedCount >= 3;
+  const isLikelyLegacyBodyweight = (bodyweightLog ?? []).length <= 3;
+  const noWorkoutHistory = workoutNames.length === 0;
 
-  return matchesProfile && matchesWorkouts && matchesAchievements && matchesBodyweight;
+  return hasOnlyLegacyWorkoutNames || isLikelyLegacyAchievements || isLikelyLegacyBodyweight || noWorkoutHistory;
 }
 
 export function useWorkouts(user) {
@@ -194,6 +198,18 @@ export function useWorkouts(user) {
     [seedDefaults],
   );
 
+  const normalizeLegacyProfileStats = useCallback(async (client, userId) => {
+    await client
+      .from("profiles")
+      .update({
+        level: starterProfile.level,
+        xp: starterProfile.xp,
+        streak: starterProfile.streak,
+        bio: starterProfile.bio,
+      })
+      .eq("id", userId);
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!user?.id || !isSupabaseReady) {
       setLoading(false);
@@ -224,16 +240,19 @@ export function useWorkouts(user) {
       setError(queryError.message);
     }
 
-    if (
-      !legacyCleanupAttempted.current &&
-      isLegacyDemoAccount(profileRes.data, workoutsRes.data, achievementsRes.data, weightRes.data)
-    ) {
+    if (!legacyCleanupAttempted.current && isLegacyProfileSeeded(profileRes.data)) {
       legacyCleanupAttempted.current = true;
-      await cleanupLegacyDemoData(
-        client,
-        user.id,
-        (routinesRes.data ?? []).map((routine) => routine.id),
-      );
+
+      if (isLikelyLegacyDemoData(workoutsRes.data, achievementsRes.data, weightRes.data)) {
+        await cleanupLegacyDemoData(
+          client,
+          user.id,
+          (routinesRes.data ?? []).map((routine) => routine.id),
+        );
+      } else {
+        await normalizeLegacyProfileStats(client, user.id);
+      }
+
       await refresh();
       return;
     }
@@ -269,7 +288,7 @@ export function useWorkouts(user) {
     setFriends(await fetchFriends(client, user.id));
     setLoading(false);
     setSyncStamp(new Date().toISOString());
-  }, [cleanupLegacyDemoData, fetchFriends, seedDefaults, user?.id]);
+  }, [cleanupLegacyDemoData, fetchFriends, normalizeLegacyProfileStats, seedDefaults, user?.id]);
 
   useEffect(() => {
     refresh();
