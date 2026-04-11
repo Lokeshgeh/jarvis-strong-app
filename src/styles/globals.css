@@ -1,23 +1,23 @@
 :root {
-  --bg: #efeeec;
-  --card: #ffffff;
-  --card-hover: #f7f4ef;
-  --border: #dfd8ce;
-  --blue: #151515;
-  --orange: #e36a43;
-  --gold: #e6b85c;
-  --green: #6a9b72;
-  --red: #d86b50;
-  --purple: #9b91e8;
-  --pink: #f1a3a5;
-  --text: #171512;
-  --text2: #625d56;
-  --text3: #9d978f;
+  --bg: #0b0f1a;
+  --card: #111827;
+  --card-hover: #0f172a;
+  --border: #243244;
+  --blue: #3b82f6;
+  --orange: #f97316;
+  --gold: #facc15;
+  --green: #22c55e;
+  --red: #ef4444;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --text: #f9fafb;
+  --text2: #9ca3af;
+  --text3: #6b7280;
   --font: "Space Grotesk", sans-serif;
   --mono: "JetBrains Mono", monospace;
-  --radius: 22px;
-  --shadow-soft: 0 20px 40px rgba(110, 94, 74, 0.08);
-  --shadow-float: 0 18px 30px rgba(110, 94, 74, 0.12);
+  --radius: 16px;
+  --shadow-soft: 0 20px 40px rgba(2, 6, 23, 0.45);
+  --shadow-float: 0 18px 30px rgba(2, 6, 23, 0.5);
 }
 
 @tailwind base;
@@ -25,11 +25,11 @@
 @tailwind utilities;
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
   background:
-    radial-gradient(circle at top left, rgba(227, 106, 67, 0.08), transparent 22%),
-    radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.04), transparent 28%),
-    linear-gradient(180deg, #f2f0ed 0%, #ece8e3 100%);
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(249, 115, 22, 0.1), transparent 28%),
+    linear-gradient(180deg, #0b0f1a 0%, #070b13 100%);
 }
 
 body {
@@ -58,13 +58,13 @@ textarea {
 .app-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top center, rgba(227, 106, 67, 0.08), transparent 16%),
-    linear-gradient(180deg, #f2f0ed 0%, #ebe7e2 100%);
+    radial-gradient(circle at top center, rgba(59, 130, 246, 0.16), transparent 16%),
+    linear-gradient(180deg, #0b0f1a 0%, #080c14 100%);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(36, 50, 68, 0.8);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(18px);
 }
@@ -86,7 +86,7 @@ textarea {
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #111111, #3d3730 50%, var(--orange));
+  background: linear-gradient(90deg, #f9fafb, #dbeafe 55%, #60a5fa);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -136,20 +136,22 @@ textarea {
 }
 
 .ring {
-  background: conic-gradient(var(--orange) var(--progress, 40%), rgba(0, 0, 0, 0.08) 0);
+  background: conic-gradient(#22c55e var(--progress, 40%), rgba(15, 23, 42, 0.45) 0);
 }
 
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
   background-size: 52px 52px;
   mask-image: radial-gradient(circle at center, black 30%, transparent 90%);
   pointer-events: none;
 }
 
 ::selection {
-  background: rgba(227, 106, 67, 0.18);
+  background: rgba(59, 130, 246, 0.35);
 }
 

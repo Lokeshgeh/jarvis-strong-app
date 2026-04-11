@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import VolumeBarChart from "../charts/VolumeBarChart";
 import WeightLineChart from "../charts/WeightLineChart";
 import { Icon } from "../icons";
@@ -6,13 +6,15 @@ import { useAppState } from "../../store/globalState";
 
 function SegmentTabs({ items, active, onChange }) {
   return (
-    <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">
+    <div className="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-white/10 bg-[#111827] p-1">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
-          className={`rounded-full px-4 py-2 text-sm font-semibold ${active === item.id ? "bg-orange text-white" : "text-text2"}`}
+          className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            active === item.id ? "bg-white text-[#0b1020]" : "text-text2"
+          }`}
         >
           {item.label}
         </button>
@@ -21,17 +23,32 @@ function SegmentTabs({ items, active, onChange }) {
   );
 }
 
+function getRankFromLevel(level) {
+  if (level >= 35) return "OLYMPIAN";
+  if (level >= 25) return "DIAMOND II";
+  if (level >= 16) return "TITAN II";
+  if (level >= 10) return "TITAN I";
+  if (level >= 5) return "PIONEER";
+  return "ROOKIE";
+}
+
 export default function RanksTab({ profile, workouts, galleryEntries, onSaveExerciseRank, onOpenInfo }) {
   const { subTabs, setSubTab } = useAppState();
   const activeTab = subTabs.ranks;
   const [calculator, setCalculator] = useState({ exercise: "Bench Press", weight: 80, reps: 8 });
-  const rankSeries = workouts.slice(0, 8).reverse().map((_, index) => 48 + index * 5);
+  const profileLevel = Number(profile?.level ?? 1);
+  const profileXp = Number(profile?.xp ?? 0);
+  const rankName = getRankFromLevel(profileLevel);
+  const nextLevelXp = profileLevel * 100;
+  const xpProgress = Math.min(100, Math.round(((profileXp % 100) / 100) * 100));
+  const rankSeries = workouts.slice(0, 8).reverse().map((_, index) => Math.max(1, profileLevel - 7 + index));
   const labels = workouts
     .slice(0, 8)
     .reverse()
     .map((workout) => new Date(workout.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
   const calculatedLp = Math.round(Number(calculator.weight) * 2.6 + Number(calculator.reps) * 15);
-  const calculatedTier = calculatedLp > 620 ? "OLYMPIAN" : calculatedLp > 520 ? "DIAMOND II" : calculatedLp > 420 ? "TITAN II" : "PIONEER";
+  const calculatedTier =
+    calculatedLp > 620 ? "OLYMPIAN" : calculatedLp > 520 ? "DIAMOND II" : calculatedLp > 420 ? "TITAN II" : "PIONEER";
   const groupedMuscles = useMemo(
     () => [
       ["Arms", "3/3 Complete"],
@@ -41,7 +58,7 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
       ["Chest", "2/2 Complete"],
       ["Back", "4/4 Complete"],
     ],
-    []
+    [],
   );
 
   return (
@@ -60,35 +77,47 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
       />
 
       {activeTab === "yourRank" && (
-        <div className="space-y-5">
-          <section className="rounded-[28px] border border-purple/25 bg-[linear-gradient(135deg,#2d2155_0%,#120f1d_100%)] p-6">
+        <div className="space-y-4">
+          <section className="rounded-[24px] border border-purple/35 bg-[linear-gradient(135deg,#1f1b3a_0%,#0b1020_100%)] p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-purple">Crystalline momentum</p>
-                <h2 className="mt-2 text-3xl font-bold text-text">DIAMOND II - 78 LP</h2>
-                <p className="mt-2 text-sm text-text2">Keep stacking high-quality sessions.</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-purple">Your current rank</p>
+                <h2 className="mt-2 text-3xl font-bold text-text">
+                  {rankName} • LV {profileLevel}
+                </h2>
+                <p className="mt-2 text-sm text-text2">XP {profileXp} / {nextLevelXp} to next level</p>
               </div>
               <button
                 type="button"
-                onClick={() => onOpenInfo("Share rank card", "Rank sharing will export a branded snapshot once the social card renderer is attached.")}
+                onClick={() => onOpenInfo("Share rank card", "Rank card sharing will export your current rank and XP progress as a social image.")}
                 className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2"
               >
                 Share
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-[22px] border border-white/8 bg-[#090912] p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-text3">Global</p>
-                <p className="mt-2 text-xl font-bold text-text">#45166</p>
-                <p className="text-sm text-green">Top 17.3% - 41800 up</p>
-              </div>
-              <div className="rounded-[22px] border border-white/8 bg-[#090912] p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-text3">Regional</p>
-                <p className="mt-2 text-xl font-bold text-text">Diamond</p>
-                <p className="text-sm text-purple">South Asia</p>
-              </div>
+            <div className="mt-4 h-3 overflow-hidden rounded-full border border-white/10 bg-[#0b1020]">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#3b82f6,#22c55e)]"
+                style={{ width: `${xpProgress}%` }}
+              />
             </div>
+          </section>
+
+          <section className="rounded-[24px] border border-white/10 bg-card p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-blue">How XP works</p>
+            <div className="mt-3 space-y-2 text-sm text-text2">
+              <p>+120 XP for completing a scheduled workout.</p>
+              <p>+30 XP for closing your daily nutrition target.</p>
+              <p className="text-text3">No XP is awarded for just browsing screens.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenInfo("XP economy", "XP comes from completed actions only. Finish workouts and nutrition targets to rank up.")}
+              className="mt-4 rounded-full border border-white/10 bg-[#0f172a] px-4 py-2 text-sm font-semibold text-text"
+            >
+              View full XP rules
+            </button>
           </section>
 
           <section className="rounded-[24px] border border-white/10 bg-card p-5">
@@ -99,7 +128,7 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
               </div>
               <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-text2">1M</div>
             </div>
-            <div className="chart-shell">
+            <div className="chart-shell rounded-2xl border border-white/10 bg-[#0f172a] p-3">
               <WeightLineChart labels={labels} values={rankSeries} />
             </div>
           </section>
@@ -111,7 +140,7 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
           <section className="rounded-[24px] border border-blue/20 bg-card p-5">
             <div className="grid grid-cols-2 gap-3">
               {["Front", "Back"].map((label) => (
-                <div key={label} className="rounded-[22px] border border-white/8 bg-[#090912] p-4 text-center">
+                <div key={label} className="rounded-[22px] border border-white/10 bg-[#090912] p-4 text-center">
                   <div className="mx-auto h-44 w-28 rounded-[999px] border border-blue/25 bg-[radial-gradient(circle_at_center,rgba(0,191,255,0.25),transparent_70%)]" />
                   <p className="mt-3 text-xs uppercase tracking-[0.24em] text-text3">{label}</p>
                 </div>
@@ -122,7 +151,12 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
               <h3 className="mt-2 text-xl font-bold text-text">You improved 15 muscle groups!</h3>
               <button
                 type="button"
-                onClick={() => onOpenInfo("Improvement breakdown", "This section will break down which muscle groups moved the most based on your latest logged session.")}
+                onClick={() =>
+                  onOpenInfo(
+                    "Improvement breakdown",
+                    "This section breaks down which muscle groups moved the most from your latest logged workout."
+                  )
+                }
                 className="mt-3 rounded-full bg-blue px-4 py-2 text-sm font-bold text-[#03131d]"
               >
                 See Improvements
@@ -145,7 +179,12 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
                   </div>
                   <button
                     type="button"
-                    onClick={() => onOpenInfo(`${group} detail`, `${group} ranking detail will list the exercises and sessions currently contributing to this bodygraph score.`)}
+                    onClick={() =>
+                      onOpenInfo(
+                        `${group} detail`,
+                        `${group} ranking detail will list the exercises and sessions currently contributing to this bodygraph score.`
+                      )
+                    }
                     className="rounded-full border border-white/10 px-3 py-2 text-xs text-text2"
                   >
                     Details
@@ -163,10 +202,17 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
             <Icon name="ranks" className="h-10 w-10" />
           </div>
           <h3 className="mt-4 text-2xl font-bold text-text">You&apos;re in queue</h3>
-          <p className="mt-2 text-sm text-text2">Wait for the next league reset to get in with your Liftoff Rank.</p>
+          <p className="mt-2 text-sm text-text2">
+            Wait for the next league reset to get in with your Jarvis rank.
+          </p>
           <button
             type="button"
-            onClick={() => onOpenInfo("League reset", "Your league slot refreshes on the next reset window. Keep logging sessions to improve seeding before the countdown ends.")}
+            onClick={() =>
+              onOpenInfo(
+                "League reset",
+                "Your league slot refreshes on the next reset window. Keep logging sessions to improve seeding."
+              )
+            }
             className="mt-5 rounded-full bg-blue px-5 py-3 text-sm font-bold text-[#03131d]"
           >
             3 Days
@@ -179,7 +225,11 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
           {galleryEntries.map((entry) => (
             <article
               key={entry.id}
-              className={`rounded-[24px] border p-5 ${entry.tier.includes("OLYMPIAN") ? "border-gold/25 bg-gradient-to-br from-gold/20 to-card" : "border-red/20 bg-gradient-to-br from-red/15 to-card"}`}
+              className={`rounded-[24px] border p-5 ${
+                entry.tier.includes("OLYMPIAN")
+                  ? "border-gold/25 bg-gradient-to-br from-gold/20 to-card"
+                  : "border-red/20 bg-gradient-to-br from-red/15 to-card"
+              }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -263,15 +313,24 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
             <h3 className="mt-2 text-xl font-bold text-text">Last 12 weeks</h3>
             <div className="mt-4 grid grid-cols-7 gap-2">
               {Array.from({ length: 84 }).map((_, index) => (
-                <div key={index} className={`aspect-square rounded-md ${index % 4 === 0 ? "bg-blue/30" : index % 6 === 0 ? "bg-orange/25" : "bg-white/5"}`} />
+                <div
+                  key={index}
+                  className={`aspect-square rounded-md ${
+                    index % 4 === 0 ? "bg-blue/30" : index % 6 === 0 ? "bg-orange/25" : "bg-white/5"
+                  }`}
+                />
               ))}
             </div>
           </section>
 
           <section className="rounded-[24px] border border-white/10 bg-card p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-text3">Volume trend</p>
-            <div className="chart-shell mt-4">
-              <VolumeBarChart labels={labels} values={workouts.slice(0, 8).reverse().map((entry) => Number(entry.volume_kg ?? 0))} color="#FF6B35" />
+            <div className="chart-shell mt-4 rounded-2xl border border-white/10 bg-[#0f172a] p-3">
+              <VolumeBarChart
+                labels={labels}
+                values={workouts.slice(0, 8).reverse().map((entry) => Number(entry.volume_kg ?? 0))}
+                color="#3B82F6"
+              />
             </div>
           </section>
 
@@ -279,7 +338,7 @@ export default function RanksTab({ profile, workouts, galleryEntries, onSaveExer
             <p className="text-xs uppercase tracking-[0.24em] text-text3">Top improvements</p>
             <div className="mt-4 space-y-3">
               {galleryEntries.slice(0, 3).map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-white/8 bg-[#090912] p-4">
+                <div key={entry.id} className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-text">{entry.exercise_name}</p>
                     <p className="font-mono text-blue">{entry.lp} LP</p>

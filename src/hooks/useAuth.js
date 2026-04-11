@@ -27,6 +27,7 @@ export function useAuth() {
 
     let cancelled = false;
     const client = getSupabase();
+    let loadingWatchdog;
     const finishLoading = () => {
       if (!cancelled) {
         setLoading(false);
@@ -45,12 +46,31 @@ export function useAuth() {
       }, 0);
     };
 
+    const getSessionWithRecovery = async () => {
+      const firstAttempt = await client.auth.getSession();
+      if (!firstAttempt.error || firstAttempt.data?.session) {
+        return firstAttempt;
+      }
+
+      const message = (firstAttempt.error.message || "").toLowerCase();
+      if (!message.includes("timeout") && !message.includes("timed out")) {
+        return firstAttempt;
+      }
+
+      const refreshAttempt = await client.auth.refreshSession();
+      if (!refreshAttempt.error || refreshAttempt.data?.session) {
+        return { data: { session: refreshAttempt.data?.session ?? null }, error: null };
+      }
+
+      return client.auth.getSession();
+    };
+
     const bootstrap = async () => {
       try {
-        const { data, error } = await client.auth.getSession();
+        const { data, error } = await getSessionWithRecovery();
         if (cancelled) return;
 
-        if (error) {
+        if (error && !data?.session) {
           setAuthError(error.message);
         } else {
           setAuthError("");
@@ -68,6 +88,10 @@ export function useAuth() {
         finishLoading();
       }
     };
+
+    loadingWatchdog = window.setTimeout(() => {
+      finishLoading();
+    }, 9000);
 
     bootstrap();
 
@@ -95,6 +119,7 @@ export function useAuth() {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(loadingWatchdog);
       subscription.unsubscribe();
     };
   }, [ensureProfile]);

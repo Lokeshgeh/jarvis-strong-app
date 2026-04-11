@@ -47,7 +47,7 @@ export default function App() {
   const stats = useMemo(
     () => ({
       workouts: workoutData.workouts.length,
-      streak: workoutData.profile?.streak ?? 46,
+      streak: workoutData.profile?.streak ?? 0,
       records: workoutData.workouts.reduce((sum, workout) => sum + Number(workout.records_broken ?? 0), 0),
     }),
     [workoutData.profile?.streak, workoutData.workouts]

@@ -64,6 +64,17 @@ function isLikelyLegacyDemoData(workouts, achievements, bodyweightLog) {
   return hasOnlyLegacyWorkoutNames || isLikelyLegacyAchievements || isLikelyLegacyBodyweight || noWorkoutHistory;
 }
 
+function shouldResetProgressToStarter(profileRow, workouts) {
+  if (!profileRow) return false;
+  if ((workouts ?? []).length > 0) return false;
+
+  return (
+    Number(profileRow.level ?? starterProfile.level) !== starterProfile.level ||
+    Number(profileRow.xp ?? starterProfile.xp) !== starterProfile.xp ||
+    Number(profileRow.streak ?? starterProfile.streak) !== starterProfile.streak
+  );
+}
+
 export function useWorkouts(user) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -273,6 +284,17 @@ export function useWorkouts(user) {
         await refresh();
         return;
       }
+    }
+
+    if (shouldResetProgressToStarter(profileRes.data, workoutsRes.data)) {
+      await normalizeLegacyProfileStats(client, user.id);
+      profileRes.data = {
+        ...profileRes.data,
+        level: starterProfile.level,
+        xp: starterProfile.xp,
+        streak: starterProfile.streak,
+        bio: profileRes.data?.bio || starterProfile.bio,
+      };
     }
 
     setProfile(profileRes.data);
