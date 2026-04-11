@@ -30,7 +30,7 @@ function SegmentTabs({ items, active, onChange }) {
 
 function BodyDiagramCard() {
   return (
-    <div className="rounded-[24px] border border-white/10 bg-white p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+    <div className="rounded-[24px] border border-white/10 bg-[#0f172a] p-5 shadow-[0_14px_28px_rgba(2,6,23,0.45)]">
       <div className="grid grid-cols-2 gap-4">
         {["Front", "Back"].map((label) => (
           <div key={label} className="rounded-[20px] border border-white/10 bg-[#0f172a] p-4 text-center">
@@ -136,7 +136,7 @@ export default function WorkoutTab({
                 <h2 className="text-2xl font-bold text-white">{todayRoutine.name || "Full Body"}</h2>
                 <p className="mt-1 text-sm text-white/80">{todaySets} sets - {Math.max(45, todaySets * 4)} min</p>
               </div>
-              <button type="button" onClick={() => onStartWorkout(todayRoutine)} className="rounded-full bg-white px-4 py-3 text-sm font-bold text-blue">
+              <button type="button" onClick={() => onStartWorkout(todayRoutine)} className="rounded-full border border-blue/30 bg-blue/10 px-4 py-3 text-sm font-bold text-blue">
                 Start
               </button>
             </div>
@@ -245,7 +245,7 @@ export default function WorkoutTab({
       {activeTab === "myPlan" && (
         <div className="space-y-5">
           <div className="rounded-[28px] border border-[#efcfbf] bg-gradient-to-br from-[#fff4ed] to-card p-6 text-center shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-[#efcfbf] bg-white text-blue">
+            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-white/10 bg-[#0f172a] text-blue">
               <Icon name="spark" className="h-12 w-12" />
             </div>
             <h3 className="mt-4 text-2xl font-bold text-text">Plan Builder</h3>
@@ -306,7 +306,7 @@ export default function WorkoutTab({
                                 routine_exercises: entry.exercises,
                               })
                             }
-                            className="rounded-full border border-white/10 bg-white px-4 py-2 text-sm text-text2"
+                            className="rounded-full border border-white/10 bg-[#020617] px-4 py-2 text-sm text-text2"
                           >
                             Open Plan
                           </button>
@@ -315,13 +315,13 @@ export default function WorkoutTab({
                     </div>
 
                     {entry.isRecoveryDay ? (
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm text-text2">
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-sm text-text2">
                         Recovery focus day. Keep mobility, walking, and light activation work here.
                       </div>
                     ) : (
                       <div className="mt-4 grid gap-3">
                         {entry.exercises.map((exercise) => (
-                          <div key={`${entry.id}-${exercise.exercise_name}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white px-4 py-3">
+                          <div key={`${entry.id}-${exercise.exercise_name}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#020617] px-4 py-3">
                             <div>
                               <p className="font-semibold text-text">{exercise.exercise_name}</p>
                               <p className="text-xs text-text3">{exercise.muscle_group}</p>
@@ -426,4 +426,5 @@ export default function WorkoutTab({
     </div>
   );
 }
+
 
