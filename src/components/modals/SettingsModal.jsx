@@ -1,16 +1,144 @@
 import { useEffect, useMemo, useState } from "react";
 
 export default function SettingsModal({ open, onClose, profile, stats, onSave, onExport, onReset, onSignOut }) {
-  const [draft, setDraft] = useState({ username: profile?.username ?? "Jarvis Strong", bio: profile?.bio ?? "Diamond II • Discipline-first builder", avatar_color: profile?.avatar_color ?? "#00BFFF", units: profile?.units ?? "kg", notification_time: profile?.notification_time ?? "04:00" });
+  const [draft, setDraft] = useState({
+    username: profile?.username ?? "Jarvis Strong",
+    bio: profile?.bio ?? "Diamond II - Discipline-first builder",
+    avatar_color: profile?.avatar_color ?? "#00BFFF",
+    units: profile?.units ?? "kg",
+    notification_time: profile?.notification_time ?? "04:00",
+  });
 
   useEffect(() => {
-    setDraft({ username: profile?.username ?? "Jarvis Strong", bio: profile?.bio ?? "Diamond II • Discipline-first builder", avatar_color: profile?.avatar_color ?? "#00BFFF", units: profile?.units ?? "kg", notification_time: profile?.notification_time ?? "04:00" });
+    setDraft({
+      username: profile?.username ?? "Jarvis Strong",
+      bio: profile?.bio ?? "Diamond II - Discipline-first builder",
+      avatar_color: profile?.avatar_color ?? "#00BFFF",
+      units: profile?.units ?? "kg",
+      notification_time: profile?.notification_time ?? "04:00",
+    });
   }, [open, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username]);
 
-  const dirty = useMemo(() => draft.username !== (profile?.username ?? "") || draft.bio !== (profile?.bio ?? "") || draft.avatar_color !== (profile?.avatar_color ?? "") || draft.units !== (profile?.units ?? "kg") || draft.notification_time !== (profile?.notification_time ?? "04:00"), [draft, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username]);
+  const dirty = useMemo(
+    () =>
+      draft.username !== (profile?.username ?? "") ||
+      draft.bio !== (profile?.bio ?? "") ||
+      draft.avatar_color !== (profile?.avatar_color ?? "") ||
+      draft.units !== (profile?.units ?? "kg") ||
+      draft.notification_time !== (profile?.notification_time ?? "04:00"),
+    [draft, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username]
+  );
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm"><div className="glass-card w-full max-w-[480px] rounded-[24px] border border-white/10 bg-card p-5"><div className="mb-4 flex items-center justify-between"><div><p className="text-sm uppercase tracking-[0.3em] text-text3">Settings</p><h3 className="text-xl font-bold text-text">Profile & preferences</h3></div><button type="button" onClick={onClose} className="rounded-full bg-white/5 px-3 py-2 text-sm text-text2">Close</button></div><div className="space-y-4"><label className="block"><span className="mb-2 block text-sm text-text2">Username</span><input value={draft.username} onChange={(event) => setDraft((current) => ({ ...current, username: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-text outline-none" /></label><label className="block"><span className="mb-2 block text-sm text-text2">Bio</span><textarea value={draft.bio} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} className="min-h-[90px] w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-text outline-none" /></label><div className="grid grid-cols-2 gap-3"><label className="block rounded-2xl border border-white/10 bg-white/5 p-4"><span className="mb-2 block text-sm text-text2">Avatar color</span><input type="color" value={draft.avatar_color} onChange={(event) => setDraft((current) => ({ ...current, avatar_color: event.target.value }))} className="h-12 w-full rounded-xl border-none bg-transparent" /></label><label className="block rounded-2xl border border-white/10 bg-white/5 p-4"><span className="mb-2 block text-sm text-text2">Units</span><select value={draft.units} onChange={(event) => setDraft((current) => ({ ...current, units: event.target.value }))} className="w-full rounded-xl bg-[#090912] px-3 py-3 text-text outline-none"><option value="kg">kg</option><option value="lbs">lbs</option></select></label></div><label className="block rounded-2xl border border-white/10 bg-white/5 p-4"><span className="mb-2 block text-sm text-text2">Workout reminder</span><input type="time" value={draft.notification_time} onChange={(event) => setDraft((current) => ({ ...current, notification_time: event.target.value }))} className="w-full rounded-xl bg-[#090912] px-3 py-3 text-text outline-none" /></label></div><div className="mt-4 grid grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-[#090912] p-4 text-center"><div><p className="text-xs uppercase tracking-[0.2em] text-text3">Workouts</p><p className="mt-2 text-2xl font-bold text-text">{stats.workouts}</p></div><div><p className="text-xs uppercase tracking-[0.2em] text-text3">Streak</p><p className="mt-2 text-2xl font-bold text-orange">{stats.streak}</p></div><div><p className="text-xs uppercase tracking-[0.2em] text-text3">Records</p><p className="mt-2 text-2xl font-bold text-gold">{stats.records}</p></div></div><div className="mt-5 flex flex-wrap gap-3"><button type="button" onClick={onExport} className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-text2">Export JSON</button><button type="button" onClick={onReset} className="rounded-2xl border border-red/30 bg-red/10 px-4 py-3 text-sm text-red">Reset all</button><button type="button" onClick={onSignOut} className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-text2">Sign out</button></div><div className="mt-5 flex gap-3"><button type="button" onClick={onClose} className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-text2">Cancel</button><button type="button" disabled={!dirty} onClick={() => onSave(draft)} className="flex-1 rounded-2xl bg-blue px-4 py-3 font-semibold text-[#03131d] disabled:opacity-40">Save Settings</button></div></div></div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="glass-card w-full max-w-[480px] rounded-[24px] border border-black/5 bg-card p-5 shadow-[0_24px_60px_rgba(54,45,35,0.18)]">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-text3">Settings</p>
+            <h3 className="text-xl font-bold text-text">Profile & preferences</h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full bg-[#f3eee8] px-3 py-2 text-sm text-text2">
+            Close
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm text-text2">Username</span>
+            <input
+              value={draft.username}
+              onChange={(event) => setDraft((current) => ({ ...current, username: event.target.value }))}
+              className="w-full rounded-2xl border border-black/5 bg-[#faf7f3] px-4 py-3 text-text outline-none"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm text-text2">Bio</span>
+            <textarea
+              value={draft.bio}
+              onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
+              className="min-h-[90px] w-full rounded-2xl border border-black/5 bg-[#faf7f3] px-4 py-3 text-text outline-none"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+              <span className="mb-2 block text-sm text-text2">Avatar color</span>
+              <input
+                type="color"
+                value={draft.avatar_color}
+                onChange={(event) => setDraft((current) => ({ ...current, avatar_color: event.target.value }))}
+                className="h-12 w-full rounded-xl border-none bg-transparent"
+              />
+            </label>
+
+            <label className="block rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+              <span className="mb-2 block text-sm text-text2">Units</span>
+              <select
+                value={draft.units}
+                onChange={(event) => setDraft((current) => ({ ...current, units: event.target.value }))}
+                className="w-full rounded-xl border border-black/5 bg-white px-3 py-3 text-text outline-none"
+              >
+                <option value="kg">kg</option>
+                <option value="lbs">lbs</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="block rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+            <span className="mb-2 block text-sm text-text2">Workout reminder</span>
+            <input
+              type="time"
+              value={draft.notification_time}
+              onChange={(event) => setDraft((current) => ({ ...current, notification_time: event.target.value }))}
+              className="w-full rounded-xl border border-black/5 bg-white px-3 py-3 text-text outline-none"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-3 rounded-2xl border border-black/5 bg-[#faf7f3] p-4 text-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-text3">Workouts</p>
+            <p className="mt-2 text-2xl font-bold text-text">{stats.workouts}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-text3">Streak</p>
+            <p className="mt-2 text-2xl font-bold text-orange">{stats.streak}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-text3">Records</p>
+            <p className="mt-2 text-2xl font-bold text-gold">{stats.records}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button type="button" onClick={onExport} className="rounded-2xl border border-black/5 bg-white px-4 py-3 text-sm text-text2">
+            Export JSON
+          </button>
+          <button type="button" onClick={onReset} className="rounded-2xl border border-[#efcfbf] bg-[#fff5ef] px-4 py-3 text-sm text-red">
+            Reset all
+          </button>
+          <button type="button" onClick={onSignOut} className="rounded-2xl border border-black/5 bg-white px-4 py-3 text-sm text-text2">
+            Sign out
+          </button>
+        </div>
+
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 rounded-2xl border border-black/5 bg-white px-4 py-3 text-text2">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!dirty}
+            onClick={() => onSave(draft)}
+            className="flex-1 rounded-2xl bg-orange px-4 py-3 font-semibold text-white disabled:opacity-40"
+          >
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
