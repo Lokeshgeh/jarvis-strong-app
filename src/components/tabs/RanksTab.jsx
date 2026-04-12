@@ -80,7 +80,7 @@ export default function RanksTab({
 
       {activeTab === "yourRank" && (
         <div className="space-y-4">
-          <section className="rank-hero-card rounded-[24px] border border-purple/35 bg-[linear-gradient(135deg,#1f1b3a_0%,#0b1020_100%)] p-5">
+          <section className="rank-hero-card rounded-[24px] p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-purple">Your current rank</p>
@@ -98,7 +98,7 @@ export default function RanksTab({
               </button>
             </div>
 
-            <div className="mt-4 h-3 overflow-hidden rounded-full border border-white/10 bg-[#0b1020]">
+            <div className="rank-hero-progress-track mt-4 h-3 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full bg-[linear-gradient(90deg,#3b82f6,#22c55e)]"
                 style={{ width: `${xpProgress}%` }}

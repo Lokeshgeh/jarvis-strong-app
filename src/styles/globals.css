@@ -211,9 +211,24 @@ html[data-theme="light"] [class*="border-white/8"] {
   border-color: rgba(197, 174, 154, 0.45) !important;
 }
 
+.rank-hero-card {
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  background: linear-gradient(135deg, #1f1b3a 0%, #0b1020 100%);
+}
+
+.rank-hero-progress-track {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b1020;
+}
+
 html[data-theme="light"] .rank-hero-card {
   background: linear-gradient(135deg, #fffaf4 0%, #f5eee5 100%) !important;
   border-color: rgba(197, 174, 154, 0.55) !important;
+}
+
+html[data-theme="light"] .rank-hero-progress-track {
+  border-color: rgba(197, 174, 154, 0.45);
+  background: #f8f1e7;
 }
 
 ::selection {
