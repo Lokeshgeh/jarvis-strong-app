@@ -1,8 +1,12 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    const saved = window.localStorage.getItem("jarvis-theme");
+    return saved === "light" ? "light" : "dark";
+  });
   const [activeTab, setActiveTab] = useState("workout");
   const [subTabs, setSubTabs] = useState({
     workout: "tracker",
@@ -14,8 +18,15 @@ export function AppProvider({ children }) {
   const [modal, setModal] = useState({ type: null, payload: null });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
 
+  useEffect(() => {
+    window.localStorage.setItem("jarvis-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const value = useMemo(
     () => ({
+      theme,
+      setTheme,
       activeTab,
       setActiveTab,
       subTabs,
@@ -29,7 +40,7 @@ export function AppProvider({ children }) {
       selectedDate,
       setSelectedDate,
     }),
-    [activeTab, modal, overlay, selectedDate, subTabs],
+    [activeTab, modal, overlay, selectedDate, subTabs, theme],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

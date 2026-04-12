@@ -34,17 +34,17 @@ export default function FriendsTab({ user, friends, onAddFriend, onRemoveFriend,
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[24px] border border-black/5 bg-card p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+      <section className="rounded-[24px] border border-white/10 bg-card p-5 shadow-[0_14px_28px_rgba(2,6,23,0.45)]">
         <p className="text-xs uppercase tracking-[0.24em] text-text3">Find Friends</p>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search usernames"
-          className="mt-3 w-full rounded-2xl border border-black/5 bg-[#faf7f3] px-4 py-3 text-text outline-none"
+          className="mt-3 w-full rounded-2xl border border-white/10 bg-[#0f172a] px-4 py-3 text-text outline-none"
         />
       </section>
 
-      <section className="rounded-[24px] border border-black/5 bg-card p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+      <section className="rounded-[24px] border border-white/10 bg-card p-5 shadow-[0_14px_28px_rgba(2,6,23,0.45)]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-text3">Pending requests</p>
@@ -55,7 +55,7 @@ export default function FriendsTab({ user, friends, onAddFriend, onRemoveFriend,
 
         <div className="mt-4 space-y-3">
           {pending.map((profile) => (
-            <div key={profile.id} className="flex items-center justify-between rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+            <div key={profile.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#0f172a] p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold" style={{ backgroundColor: profile.avatar_color }}>
                   {profile.username.slice(0, 2).toUpperCase()}
@@ -75,7 +75,7 @@ export default function FriendsTab({ user, friends, onAddFriend, onRemoveFriend,
 
       <section className="space-y-4">
         {filteredFriends.map((friend) => (
-          <article key={friend.id} className="rounded-[24px] border border-black/5 bg-card p-5 shadow-[0_14px_28px_rgba(110,94,74,0.08)]">
+          <article key={friend.id} className="rounded-[24px] border border-white/10 bg-card p-5 shadow-[0_14px_28px_rgba(2,6,23,0.45)]">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div
@@ -92,25 +92,25 @@ export default function FriendsTab({ user, friends, onAddFriend, onRemoveFriend,
               <button
                 type="button"
                 onClick={() => onOpenInfo("Friend profile", `${friend.profile?.username ?? "This friend"} will open in a richer profile sheet with stats and recent sessions.`)}
-                className="rounded-full border border-black/5 bg-[#faf7f3] px-4 py-2 text-sm text-text2"
+                className="rounded-full border border-white/10 bg-[#0f172a] px-4 py-2 text-sm text-text2"
               >
                 View
               </button>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+              <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-text3">Streak</p>
                 <p className="mt-2 flex items-center gap-2 text-xl font-bold text-orange">
                   <Icon name="fire" className="h-5 w-5" />
                   {friend.profile?.streak ?? 0}
                 </p>
               </div>
-              <div className="rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+              <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-text3">Duration</p>
                 <p className="mt-2 text-xl font-bold text-text">{friend.workout ? `${Math.round(friend.workout.duration_seconds / 60)}m` : "--"}</p>
               </div>
-              <div className="rounded-2xl border border-black/5 bg-[#faf7f3] p-4">
+              <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-text3">Muscle map</p>
                 <p className="mt-2 text-xl text-blue">
                   <Icon name="spark" className="h-5 w-5" />
@@ -118,7 +118,7 @@ export default function FriendsTab({ user, friends, onAddFriend, onRemoveFriend,
               </div>
             </div>
 
-            <button type="button" onClick={() => onRemoveFriend(friend.friend_id)} className="mt-4 rounded-full border border-[#efcfbf] bg-[#fff5ef] px-4 py-2 text-sm text-red">
+            <button type="button" onClick={() => onRemoveFriend(friend.friend_id)} className="mt-4 rounded-full border border-red/30 bg-red/10 px-4 py-2 text-sm text-red">
               Remove Friend
             </button>
           </article>

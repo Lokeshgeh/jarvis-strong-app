@@ -41,6 +41,7 @@ function ConfigScreen() {
 export default function App() {
   const auth = useAuth();
   const appState = useAppState();
+  const { theme, setTheme } = appState;
   const workoutData = useWorkouts(auth.user);
   const nutrition = useNutrition(auth.user);
 
@@ -203,7 +204,21 @@ export default function App() {
         <AddRoutineModal open={modal.type === "routine" || (modal.type === "quick-add" && activeTab === "workout")} initialRoutine={modal.payload} onClose={closeModal} onSave={async (routine) => { await workoutData.saveRoutine(routine); closeModal(); }} />
         <AddFoodModal open={modal.type === "food" || (modal.type === "quick-add" && activeTab === "nutrition")} mealType={modal.payload?.mealType ?? "breakfast"} initialEntry={modal.payload?.entry ?? null} selectedDate={selectedDate} onClose={closeModal} onSave={handleSaveFood} />
         <LogWeightModal open={modal.type === "weight"} onClose={closeModal} onSave={async (weightKg) => { await workoutData.logBodyweight(weightKg); closeModal(); }} />
-        <SettingsModal open={modal.type === "settings"} profile={workoutData.profile} stats={stats} onClose={closeModal} onSave={async (draft) => { await workoutData.saveProfile(draft); closeModal(); }} onExport={handleExport} onReset={handleReset} onSignOut={auth.signOut} />
+        <SettingsModal
+          open={modal.type === "settings"}
+          profile={workoutData.profile}
+          theme={theme}
+          onThemeChange={setTheme}
+          stats={stats}
+          onClose={closeModal}
+          onSave={async (draft) => {
+            await workoutData.saveProfile(draft);
+            closeModal();
+          }}
+          onExport={handleExport}
+          onReset={handleReset}
+          onSignOut={auth.signOut}
+        />
         <InfoModal open={modal.type === "info"} title={modal.payload?.title ?? ""} body={modal.payload?.body ?? ""} onClose={closeModal} />
       </div>
     </div>

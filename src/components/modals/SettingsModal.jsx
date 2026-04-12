@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function SettingsModal({ open, onClose, profile, stats, onSave, onExport, onReset, onSignOut }) {
+export default function SettingsModal({
+  open,
+  onClose,
+  profile,
+  theme = "dark",
+  onThemeChange,
+  stats,
+  onSave,
+  onExport,
+  onReset,
+  onSignOut,
+}) {
   const [draft, setDraft] = useState({
     username: profile?.username ?? "Jarvis Strong",
     bio: profile?.bio ?? "Discipline-first builder",
@@ -96,6 +107,28 @@ export default function SettingsModal({ open, onClose, profile, stats, onSave, o
               className="w-full rounded-xl border border-white/10 bg-[#020617] px-3 py-3 text-text outline-none"
             />
           </label>
+
+          <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
+            <span className="mb-2 block text-sm text-text2">Theme</span>
+            <div className="flex gap-2 rounded-full border border-white/10 bg-[#020617] p-1">
+              {[
+                { id: "dark", label: "Dark" },
+                { id: "light", label: "Light" },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onThemeChange?.(option.id)}
+                  className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
+                    theme === option.id ? "bg-white text-[#0b1020]" : "text-text2"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-text3">Dark uses the current competitive look. Light uses your earlier soft dashboard style.</p>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-[#0f172a] p-4 text-center">
