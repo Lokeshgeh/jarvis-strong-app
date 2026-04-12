@@ -107,18 +107,24 @@ export default function RanksTab({
           </section>
 
           <section className="rounded-[24px] border border-white/10 bg-card p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-blue">How XP works</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-blue">How scoring works</p>
             <div className="mt-3 space-y-2 text-sm text-text2">
+              <p>Exercise LP is calculated from estimated 1RM and your bodyweight baseline.</p>
               <p>+120 XP for completing a scheduled workout.</p>
               <p>+30 XP for closing your daily nutrition target.</p>
               <p className="text-text3">No XP is awarded for just browsing screens.</p>
             </div>
             <button
               type="button"
-              onClick={() => onOpenInfo("XP economy", "XP comes from completed actions only. Finish workouts and nutrition targets to rank up.")}
+              onClick={() =>
+                onOpenInfo(
+                  "Scoring model",
+                  "Exercise LP uses estimated 1RM plus bodyweight baseline. XP comes from completed actions only, not screen browsing."
+                )
+              }
               className="mt-4 rounded-full border border-white/10 bg-[#0f172a] px-4 py-2 text-sm font-semibold text-text"
             >
-              View full XP rules
+              View scoring rules
             </button>
           </section>
 
