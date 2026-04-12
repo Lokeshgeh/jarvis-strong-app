@@ -267,7 +267,7 @@ export default function HomeTab({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-text2">Bodyweight trend</p>
-                <h3 className="mt-1 text-2xl font-bold text-text">{latestWeight} kg</h3>
+                <h3 className="mt-1 text-2xl font-bold text-text">{Number.isFinite(latestWeight) ? `${latestWeight} kg` : "--"}</h3>
               </div>
               <button type="button" onClick={onOpenWeightModal} className="rounded-full border border-white/10 bg-[#0f172a] px-4 py-2 text-sm font-semibold text-blue">
                 + Log
