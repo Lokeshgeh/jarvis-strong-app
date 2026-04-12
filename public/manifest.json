@@ -1,7 +1,7 @@
 {
   "name": "Jarvis Strong",
   "short_name": "JarvStrong",
-  "description": "Gamified fitness tracker. Build discipline. Track progress. Dominate.",
+  "description": "Rank-first fitness tracker. Complete workout missions, earn lift points, and build streak momentum.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A14",
