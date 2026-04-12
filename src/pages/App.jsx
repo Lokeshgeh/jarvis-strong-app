@@ -44,6 +44,11 @@ export default function App() {
   const { theme, setTheme } = appState;
   const workoutData = useWorkouts(auth.user);
   const nutrition = useNutrition(auth.user);
+  const latestBodyweightKg = useMemo(() => {
+    const rawValue = workoutData.bodyweightLog?.at(-1)?.weight_kg;
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [workoutData.bodyweightLog]);
 
   const stats = useMemo(
     () => ({
@@ -208,12 +213,26 @@ export default function App() {
         <SettingsModal
           open={modal.type === "settings"}
           profile={workoutData.profile}
+          currentWeightKg={latestBodyweightKg}
           theme={theme}
           onThemeChange={setTheme}
           stats={stats}
           onClose={closeModal}
           onSave={async (draft) => {
-            await workoutData.saveProfile(draft);
+            const { weight_kg, ...profileDraft } = draft;
+            await workoutData.saveProfile(profileDraft);
+
+            const parsedWeight = Number(weight_kg);
+            const hasValidWeight = Number.isFinite(parsedWeight) && parsedWeight > 0;
+            const hasPreviousWeight = Number.isFinite(latestBodyweightKg);
+            const weightChanged =
+              hasValidWeight &&
+              (!hasPreviousWeight || Math.abs(parsedWeight - latestBodyweightKg) > 0.05);
+
+            if (weightChanged) {
+              await workoutData.logBodyweight(parsedWeight);
+            }
+
             closeModal();
           }}
           onExport={handleExport}
