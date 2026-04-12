@@ -480,7 +480,26 @@ export function useWorkouts(user) {
   const logBodyweight = useCallback(
     async (weightKg) => {
       const client = getSupabase();
-      await client.from("bodyweight_log").insert({ user_id: user.id, weight_kg: Number(weightKg), logged_at: toDayString() });
+      const normalizedWeight = Number(weightKg);
+      const today = toDayString();
+
+      const { data: updatedRows, error: updateError } = await client
+        .from("bodyweight_log")
+        .update({ weight_kg: normalizedWeight })
+        .eq("user_id", user.id)
+        .eq("logged_at", today)
+        .select("id");
+
+      if (updateError) throw updateError;
+
+      if (!updatedRows?.length) {
+        const { error: insertError } = await client
+          .from("bodyweight_log")
+          .insert({ user_id: user.id, weight_kg: normalizedWeight, logged_at: today });
+
+        if (insertError) throw insertError;
+      }
+
       await refresh();
     },
     [refresh, user?.id],
