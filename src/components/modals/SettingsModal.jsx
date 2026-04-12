@@ -19,6 +19,8 @@ export default function SettingsModal({
     units: profile?.units ?? "kg",
     notification_time: profile?.notification_time ?? "04:00",
   });
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setDraft({
@@ -29,6 +31,13 @@ export default function SettingsModal({
       notification_time: profile?.notification_time ?? "04:00",
     });
   }, [open, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username]);
+
+  useEffect(() => {
+    if (!open) {
+      setSaveError("");
+      setSaving(false);
+    }
+  }, [open]);
 
   const dirty = useMemo(
     () =>
@@ -127,7 +136,7 @@ export default function SettingsModal({
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-text3">Dark uses the current competitive look. Light uses your earlier soft dashboard style.</p>
+            <p className="mt-2 text-xs text-text3">Dark uses the current competitive look. Light uses your earlier soft dashboard style. Theme applies instantly.</p>
           </div>
         </div>
 
@@ -164,13 +173,26 @@ export default function SettingsModal({
           </button>
           <button
             type="button"
-            disabled={!dirty}
-            onClick={() => onSave(draft)}
+            disabled={!dirty || saving}
+            onClick={async () => {
+              setSaveError("");
+              setSaving(true);
+              try {
+                await onSave(draft);
+              } catch (error) {
+                setSaveError(error?.message || "Could not save settings. Please try again.");
+              } finally {
+                setSaving(false);
+              }
+            }}
             className="flex-1 rounded-2xl bg-green px-4 py-3 font-semibold text-[#05200f] disabled:opacity-40"
           >
-            Save Settings
+            {saving ? "Saving..." : "Save Settings"}
           </button>
         </div>
+        {saveError && (
+          <div className="mt-3 rounded-2xl border border-red/30 bg-red/10 px-4 py-3 text-sm text-red">{saveError}</div>
+        )}
       </div>
     </div>
   );

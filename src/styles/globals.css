@@ -211,6 +211,11 @@ html[data-theme="light"] [class*="border-white/8"] {
   border-color: rgba(197, 174, 154, 0.45) !important;
 }
 
+html[data-theme="light"] .rank-hero-card {
+  background: linear-gradient(135deg, #fffaf4 0%, #f5eee5 100%) !important;
+  border-color: rgba(197, 174, 154, 0.55) !important;
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.35);
 }

@@ -84,6 +84,31 @@ function shouldResetProgressToStarter(profileRow, workouts) {
   );
 }
 
+function readLocalProfilePrefs(userId) {
+  if (!userId || typeof window === "undefined") return {};
+
+  try {
+    const raw = window.localStorage.getItem(`jarvis-profile-prefs-${userId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalProfilePrefs(userId, prefs) {
+  if (!userId || typeof window === "undefined") return;
+
+  try {
+    const current = readLocalProfilePrefs(userId);
+    window.localStorage.setItem(`jarvis-profile-prefs-${userId}`, JSON.stringify({ ...current, ...prefs }));
+  } catch {
+    // Keep save flow resilient even when localStorage is unavailable.
+  }
+}
+
 export function useWorkouts(user) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -306,7 +331,8 @@ export function useWorkouts(user) {
       };
     }
 
-    setProfile(profileRes.data);
+    const localPrefs = readLocalProfilePrefs(user.id);
+    setProfile({ ...(profileRes.data ?? {}), ...localPrefs });
     setRoutines((routinesRes.data ?? []).map((routine) => ({ ...routine, routine_exercises: (routine.routine_exercises ?? []).sort((a, b) => a.sort_order - b.sort_order) })));
     setWorkouts(workoutsRes.data ?? []);
     setWorkoutSets(workoutSetsRes.data ?? []);
@@ -329,12 +355,49 @@ export function useWorkouts(user) {
     async (updates) => {
       const client = getSupabase();
       const payload = { id: user.id, ...updates };
-      const { data, error: updateError } = await client.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
-      if (updateError) throw updateError;
-      setProfile(data);
-      return data;
+      const localPrefs = {
+        ...(updates.units ? { units: updates.units } : {}),
+        ...(updates.notification_time ? { notification_time: updates.notification_time } : {}),
+      };
+
+      const applyLocalPrefs = (profileData) => {
+        if (!Object.keys(localPrefs).length) return profileData;
+        writeLocalProfilePrefs(user.id, localPrefs);
+        return { ...profileData, ...localPrefs };
+      };
+
+      const runUpsert = async (entry) => client.from("profiles").upsert(entry, { onConflict: "id" }).select("*").single();
+
+      let { data, error: updateError } = await runUpsert(payload);
+
+      if (updateError) {
+        const message = updateError.message ?? "";
+        const missingColumnError = /column .* does not exist/i.test(message);
+
+        if (!missingColumnError) {
+          throw updateError;
+        }
+
+        const fallbackPayload = {
+          id: user.id,
+          username: updates.username ?? profile?.username ?? starterProfile.username,
+          bio: updates.bio ?? profile?.bio ?? starterProfile.bio,
+          avatar_color: updates.avatar_color ?? profile?.avatar_color ?? starterProfile.avatar_color,
+          level: profile?.level ?? starterProfile.level,
+          xp: profile?.xp ?? starterProfile.xp,
+          streak: profile?.streak ?? starterProfile.streak,
+        };
+
+        const fallbackResult = await runUpsert(fallbackPayload);
+        if (fallbackResult.error) throw fallbackResult.error;
+        data = fallbackResult.data;
+      }
+
+      const merged = applyLocalPrefs(data ?? {});
+      setProfile(merged);
+      return merged;
     },
-    [user?.id],
+    [profile?.avatar_color, profile?.bio, profile?.level, profile?.streak, profile?.username, profile?.xp, user?.id],
   );
 
   const saveRoutine = useCallback(
