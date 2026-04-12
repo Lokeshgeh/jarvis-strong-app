@@ -16,6 +16,7 @@ export default function SettingsModal({
     username: profile?.username ?? "Jarvis Strong",
     bio: profile?.bio ?? "Discipline-first builder",
     avatar_color: profile?.avatar_color ?? "#00BFFF",
+    height_cm: profile?.height_cm ? String(profile.height_cm) : "",
     units: profile?.units ?? "kg",
     notification_time: profile?.notification_time ?? "04:00",
   });
@@ -29,10 +30,11 @@ export default function SettingsModal({
       username: profile?.username ?? "Jarvis Strong",
       bio: profile?.bio ?? "Discipline-first builder",
       avatar_color: profile?.avatar_color ?? "#00BFFF",
+      height_cm: profile?.height_cm ? String(profile.height_cm) : "",
       units: profile?.units ?? "kg",
       notification_time: profile?.notification_time ?? "04:00",
     });
-  }, [open, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username]);
+  }, [open, profile?.avatar_color, profile?.bio, profile?.height_cm, profile?.notification_time, profile?.units, profile?.username]);
 
   useEffect(() => {
     if (!open) {
@@ -54,9 +56,10 @@ export default function SettingsModal({
       draft.username !== (profile?.username ?? "") ||
       draft.bio !== (profile?.bio ?? "") ||
       draft.avatar_color !== (profile?.avatar_color ?? "") ||
+      draft.height_cm !== (profile?.height_cm ? String(profile.height_cm) : "") ||
       draft.units !== (profile?.units ?? "kg") ||
       draft.notification_time !== (profile?.notification_time ?? "04:00"),
-    [draft, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username],
+    [draft, profile?.avatar_color, profile?.bio, profile?.height_cm, profile?.notification_time, profile?.units, profile?.username],
   );
 
   const themeDirty = theme !== initialTheme;
@@ -96,7 +99,7 @@ export default function SettingsModal({
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="block rounded-2xl border border-white/10 bg-[#0f172a] p-4">
               <span className="mb-2 block text-sm text-text2">Avatar color</span>
               <input
@@ -117,6 +120,20 @@ export default function SettingsModal({
                 <option value="kg">kg</option>
                 <option value="lbs">lbs</option>
               </select>
+            </label>
+
+            <label className="block rounded-2xl border border-white/10 bg-[#0f172a] p-4">
+              <span className="mb-2 block text-sm text-text2">Height (cm)</span>
+              <input
+                type="number"
+                min="100"
+                max="240"
+                step="1"
+                value={draft.height_cm}
+                onChange={(event) => setDraft((current) => ({ ...current, height_cm: event.target.value }))}
+                placeholder="170"
+                className="w-full rounded-xl border border-white/10 bg-[#020617] px-3 py-3 text-text outline-none"
+              />
             </label>
           </div>
 
@@ -196,7 +213,10 @@ export default function SettingsModal({
                   return;
                 }
 
-                await onSave(draft);
+                await onSave({
+                  ...draft,
+                  height_cm: draft.height_cm ? Number(draft.height_cm) : null,
+                });
               } catch (error) {
                 setSaveError(error?.message || "Could not save settings. Please try again.");
               } finally {

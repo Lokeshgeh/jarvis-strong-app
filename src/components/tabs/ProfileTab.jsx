@@ -1,11 +1,21 @@
 ﻿import { Icon } from "../icons";
 
-export default function ProfileTab({ profile, workouts, achievements, routines, goals, onSaveProfile, onOpenSettings, onOpenRoutine, onOpenInfo }) {
+export default function ProfileTab({ profile, workouts, bodyweightLog, achievements, routines, goals, onSaveProfile, onOpenSettings, onOpenRoutine, onOpenInfo }) {
   const stats = {
     workouts: workouts.length,
     streak: profile?.streak ?? 0,
     records: workouts.reduce((sum, workout) => sum + Number(workout.records_broken ?? 0), 0),
   };
+  const latestWeight = bodyweightLog?.length ? Number(bodyweightLog[bodyweightLog.length - 1]?.weight_kg) : null;
+  const heightCm = Number(profile?.height_cm);
+  const hasWeight = Number.isFinite(latestWeight) && latestWeight > 0;
+  const hasHeight = Number.isFinite(heightCm) && heightCm > 0;
+  const bmi = hasWeight && hasHeight ? latestWeight / ((heightCm / 100) * (heightCm / 100)) : null;
+  const bodyStats = [
+    ["Height", hasHeight ? `${heightCm} cm` : "--"],
+    ["Weight", hasWeight ? `${latestWeight.toFixed(1)} kg` : "--"],
+    ["BMI", bmi ? bmi.toFixed(1) : "--"],
+  ];
 
   return (
     <div className="space-y-5">
@@ -88,7 +98,7 @@ export default function ProfileTab({ profile, workouts, achievements, routines, 
       <section className="rounded-[24px] border border-white/10 bg-card p-5 shadow-[0_14px_28px_rgba(2,6,23,0.45)]">
         <p className="text-xs uppercase tracking-[0.24em] text-text3">Body stats</p>
         <div className="mt-4 grid grid-cols-3 gap-3">
-          {[["Height", "170 cm"], ["Weight", "49.8 kg"], ["BMI", "17.2"]].map(([label, value]) => (
+          {bodyStats.map(([label, value]) => (
             <div key={label} className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-text3">{label}</p>
               <p className="mt-2 text-xl font-bold text-text">{value}</p>

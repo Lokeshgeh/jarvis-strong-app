@@ -68,7 +68,7 @@ export default function HomeTab({
   const totalRecords14 = workouts.slice(0, 14).reduce((sum, workout) => sum + Number(workout.records_broken ?? 0), 0);
   const bodyweightLabels = bodyweightLog.map((entry) => entry.logged_at?.slice(5));
   const bodyweightValues = bodyweightLog.map((entry) => Number(entry.weight_kg));
-  const latestWeight = bodyweightValues.at(-1) ?? 49;
+  const latestWeight = bodyweightValues.at(-1);
   const workedOutToday = workouts.some((workout) => sameDay(workout.completed_at, todayString));
   const hasGoal = goals.length > 0;
   const missionProgress = (workedOutToday ? 50 : 0) + (hasGoal ? 50 : 0);
@@ -191,7 +191,7 @@ export default function HomeTab({
             <div className="grid grid-cols-3 gap-3">
               <SummaryMetric label="Duration" value={`${Math.max(1, Math.round(totalDuration14 / 3600))}h`} />
               <SummaryMetric label="Records" value={`${totalRecords14}`} accent="text-gold" />
-              <SummaryMetric label="Weight" value={`${latestWeight}kg`} accent="text-blue" />
+              <SummaryMetric label="Weight" value={Number.isFinite(latestWeight) ? `${latestWeight}kg` : "--"} accent="text-blue" />
             </div>
             <div className="chart-shell mt-4 rounded-2xl border border-white/10 bg-[#0f172a] p-3">
               <VolumeBarChart

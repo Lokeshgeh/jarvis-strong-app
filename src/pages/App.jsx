@@ -178,6 +178,7 @@ export default function App() {
       <ProfileTab
         profile={workoutData.profile}
         workouts={workoutData.workouts}
+        bodyweightLog={workoutData.bodyweightLog}
         achievements={workoutData.achievements}
         routines={workoutData.routines}
         goals={workoutData.goals}

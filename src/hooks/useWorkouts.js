@@ -358,6 +358,7 @@ export function useWorkouts(user) {
       const localPrefs = {
         ...(updates.units ? { units: updates.units } : {}),
         ...(updates.notification_time ? { notification_time: updates.notification_time } : {}),
+        ...(Object.prototype.hasOwnProperty.call(updates, "height_cm") ? { height_cm: updates.height_cm } : {}),
       };
 
       const applyLocalPrefs = (profileData) => {
