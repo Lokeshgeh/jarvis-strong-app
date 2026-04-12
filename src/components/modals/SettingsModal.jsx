@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function SettingsModal({
   open,
@@ -21,6 +21,8 @@ export default function SettingsModal({
   });
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [initialTheme, setInitialTheme] = useState(theme);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
     setDraft({
@@ -39,6 +41,14 @@ export default function SettingsModal({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      setInitialTheme(theme);
+    }
+
+    wasOpenRef.current = open;
+  }, [open, theme]);
+
   const dirty = useMemo(
     () =>
       draft.username !== (profile?.username ?? "") ||
@@ -48,6 +58,9 @@ export default function SettingsModal({
       draft.notification_time !== (profile?.notification_time ?? "04:00"),
     [draft, profile?.avatar_color, profile?.bio, profile?.notification_time, profile?.units, profile?.username],
   );
+
+  const themeDirty = theme !== initialTheme;
+  const hasChanges = dirty || themeDirty;
 
   if (!open) return null;
 
@@ -173,11 +186,16 @@ export default function SettingsModal({
           </button>
           <button
             type="button"
-            disabled={!dirty || saving}
+            disabled={!hasChanges || saving}
             onClick={async () => {
               setSaveError("");
               setSaving(true);
               try {
+                if (!dirty && themeDirty) {
+                  onClose();
+                  return;
+                }
+
                 await onSave(draft);
               } catch (error) {
                 setSaveError(error?.message || "Could not save settings. Please try again.");
